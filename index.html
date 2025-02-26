@@ -38,23 +38,23 @@
             flex: 1;
         }
         
-        .cookie-section {
+        .pastry-section {
             display: flex;
             flex-direction: column;
             align-items: center;
         }
         
-        .cookie-container {
+        .pastry-container {
             position: relative;
             cursor: pointer;
             transition: transform 0.05s;
         }
         
-        .cookie-container:active {
+        .pastry-container:active {
             transform: scale(0.97);
         }
         
-        .cookie {
+        .pastry {
             width: 200px;
             height: 200px;
             background-color: #c17e40;
@@ -66,7 +66,7 @@
             box-shadow: inset 0 0 10px 5px #8c5e2b;
         }
         
-        .cookie::before {
+        .pastry::before {
             content: "";
             position: absolute;
             width: 90%;
@@ -91,7 +91,7 @@
         .chip:nth-child(5) { top: 50%; left: 20%; }
         .chip:nth-child(6) { bottom: 30%; right: 40%; }
         
-        .cookie-counter {
+        .pastry-counter {
             font-size: 24px;
             font-weight: bold;
             margin: 20px 0;
@@ -226,7 +226,7 @@
             text-align: left;
         }
         
-        .leaderboard-cookies {
+        .leaderboard-pastries {
             font-weight: bold;
         }
         
@@ -295,9 +295,9 @@
         </div>
         
         <div class="game-container">
-            <div class="game-section cookie-section">
-                <div class="cookie-container" id="cookie-clicker">
-                    <div class="cookie">
+            <div class="game-section pastry-section">
+                <div class="pastry-container" id="pastry-clicker">
+                    <div class="pastry">
                         <div class="chip"></div>
                         <div class="chip"></div>
                         <div class="chip"></div>
@@ -306,7 +306,7 @@
                         <div class="chip"></div>
                     </div>
                 </div>
-                <div class="cookie-counter" id="cookie-counter">0 cookies</div>
+                <div class="pastry-counter" id="pastry-counter">0 cookies</div>
                 <div class="cps-counter" id="cps-counter">0 per second</div>
                 <div id="event-container"></div>
             </div>
@@ -366,9 +366,9 @@
         };
 
         // Game elements
-        const cookieCounter = document.getElementById('cookie-counter');
+        const cookieCounter = document.getElementById('pastry-counter');
         const cpsCounter = document.getElementById('cps-counter');
-        const cookieClicker = document.getElementById('cookie-clicker');
+        const cookieClicker = document.getElementById('pastry-clicker');
         const upgradesContainer = document.getElementById('upgrades-container');
         const buildingsContainer = document.getElementById('buildings-container');
         const achievementElement = document.getElementById('achievement');
