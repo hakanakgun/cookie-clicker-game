@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Cookie Clicker</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f0e6;
+            color: #5a3921;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        @media (min-width: 768px) {
+            .game-container {
+                flex-direction: row;
+                align-items: flex-start;
+            }
+        }
+        
+        .game-section {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 10px;
+            flex: 1;
+        }
+        
+        .cookie-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .cookie-container {
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.05s;
+        }
+        
+        .cookie-container:active {
+            transform: scale(0.97);
+        }
+        
+        .cookie {
+            width: 200px;
+            height: 200px;
+            background-color: #c17e40;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            box-shadow: inset 0 0 10px 5px #8c5e2b;
+        }
+        
+        .cookie::before {
+            content: "";
+            position: absolute;
+            width: 90%;
+            height: 90%;
+            background-color: #d9a05c;
+            border-radius: 50%;
+            box-shadow: inset 0 0 5px 3px #8c5e2b;
+        }
+        
+        .chip {
+            position: absolute;
+            background-color: #3a250e;
+            border-radius: 50%;
+            width: 15px;
+            height: 15px;
+        }
+        
+        .chip:nth-child(1) { top: 20%; left: 30%; }
+        .chip:nth-child(2) { top: 30%; right: 30%; }
+        .chip:nth-child(3) { bottom: 20%; left: 40%; }
+        .chip:nth-child(4) { bottom: 40%; right: 25%; }
+        .chip:nth-child(5) { top: 50%; left: 20%; }
+        .chip:nth-child(6) { bottom: 30%; right: 40%; }
+        
+        .cookie-counter {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        
+        .cps-counter {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .upgrades-section, .buildings-section, .leaderboard-section {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .upgrade-item, .building-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #f9f2e7;
+            border-radius: 5px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .upgrade-item:hover, .building-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .upgrade-info, .building-info {
+            text-align: left;
+        }
+        
+        .upgrade-name, .building-name {
+            font-weight: bold;
+        }
+        
+        .upgrade-desc, .building-desc {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .upgrade-button, .building-button {
+            background-color: #8c5e2b;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .upgrade-button:hover, .building-button:hover {
+            background-color: #6a451f;
+        }
+        
+        .upgrade-button:disabled, .building-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .achievement {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        
+        .notification-container {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+        
+        .notification {
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            animation: fadeIn 0.3s, fadeOut 0.3s 2.7s;
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .player-name {
+            font-weight: bold;
+        }
+        
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            margin: 5px 0;
+            background-color: #f9f2e7;
+            border-radius: 5px;
+        }
+        
+        .leaderboard-rank {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .leaderboard-name {
+            flex-grow: 1;
+            text-align: left;
+        }
+        
+        .leaderboard-cookies {
+            font-weight: bold;
+        }
+        
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .login-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .login-button {
+            width: 100%;
+            padding: 10px;
+            background-color: #8c5e2b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .login-button:hover {
+            background-color: #6a451f;
+        }
+        
+        .event-notification {
+            background-color: #ff9800;
+            color: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            text-align: center;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div id="login-screen" class="login-container">
+        <h2>Multiplayer Cookie Clicker</h2>
+        <p>Enter your name to start playing!</p>
+        <input type="text" id="player-name-input" class="login-input" placeholder="Your name">
+        <button id="login-button" class="login-button">Start Game</button>
+    </div>
+    
+    <div id="game-screen" style="display: none;">
+        <h1>Multiplayer Cookie Clicker</h1>
+        <div class="player-info">
+            <span class="player-name" id="player-name">Player</span>
+            <button id="save-button" class="upgrade-button">Save Game</button>
+        </div>
+        
+        <div class="game-container">
+            <div class="game-section cookie-section">
+                <div class="cookie-container" id="cookie-clicker">
+                    <div class="cookie">
+                        <div class="chip"></div>
+                        <div class="chip"></div>
+                        <div class="chip"></div>
+                        <div class="chip"></div>
+                        <div class="chip"></div>
+                        <div class="chip"></div>
+                    </div>
+                </div>
+                <div class="cookie-counter" id="cookie-counter">0 cookies</div>
+                <div class="cps-counter" id="cps-counter">0 per second</div>
+                <div id="event-container"></div>
+            </div>
+            
+            <div class="game-section upgrades-section">
+                <h2>Upgrades</h2>
+                <div id="upgrades-container"></div>
+            </div>
+            
+            <div class="game-section buildings-section">
+                <h2>Buildings</h2>
+                <div id="buildings-container"></div>
+            </div>
+            
+            <div class="game-section leaderboard-section">
+                <h2>Leaderboard</h2>
+                <div id="leaderboard-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="achievement" class="achievement"></div>
+    <div id="notification-container" class="notification-container"></div>
+
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js';
+        import { getDatabase, ref, set, onValue, update, get, child } from 'https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js';
+
+        // Your Firebase configuration
+        // NOTE: In a real app, you would need to replace this with your actual Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyD9CTMnRQaaHJwZ7Nh8BXyqTSauNI-55no",
+            authDomain: "cookie-clicker-game-d6d0a.firebaseapp.com",
+            databaseURL: "https://cookie-clicker-game-d6d0a-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "cookie-clicker-game-d6d0a",
+            storageBucket: "cookie-clicker-game-d6d0a.firebasestorage.app",
+            messagingSenderId: "232493349168",
+            appId: "1:232493349168:web:860392bc64687b8865f0f5"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // Game state
+        let gameState = {
+            cookies: 0,
+            cookiesPerClick: 1,
+            cookiesPerSecond: 0,
+            upgrades: {},
+            buildings: {},
+            achievements: [],
+            lastSaved: Date.now(),
+            playerName: "",
+            playerId: ""
+        };
+
+        // Game elements
+        const cookieCounter = document.getElementById('cookie-counter');
+        const cpsCounter = document.getElementById('cps-counter');
+        const cookieClicker = document.getElementById('cookie-clicker');
+        const upgradesContainer = document.getElementById('upgrades-container');
+        const buildingsContainer = document.getElementById('buildings-container');
+        const achievementElement = document.getElementById('achievement');
+        const notificationContainer = document.getElementById('notification-container');
+        const leaderboardContainer = document.getElementById('leaderboard-container');
+        const playerNameElement = document.getElementById('player-name');
+        const loginScreen = document.getElementById('login-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const playerNameInput = document.getElementById('player-name-input');
+        const loginButton = document.getElementById('login-button');
+        const saveButton = document.getElementById('save-button');
+        const eventContainer = document.getElementById('event-container');
+
+        // Game configuration
+        const UPGRADES = [
+            { id: 'cursor1', name: 'Cursor Level 1', description: '+1 cookie per click', cost: 50, effect: { cookiesPerClick: 1 }, requires: null },
+            { id: 'cursor2', name: 'Cursor Level 2', description: '+2 cookies per click', cost: 200, effect: { cookiesPerClick: 2 }, requires: 'cursor1' },
+            { id: 'cursor3', name: 'Cursor Level 3', description: '+3 cookies per click', cost: 500, effect: { cookiesPerClick: 3 }, requires: 'cursor2' },
+            { id: 'autoclick1', name: 'Auto Clicker 1', description: 'Clicks automatically once every 10 seconds', cost: 100, effect: { autoClick: 0.1 }, requires: null },
+            { id: 'autoclick2', name: 'Auto Clicker 2', description: 'Clicks automatically once every 5 seconds', cost: 300, effect: { autoClick: 0.2 }, requires: 'autoclick1' },
+            { id: 'buildingBoost1', name: 'Building Boost 1', description: 'All buildings produce 50% more cookies', cost: 1000, effect: { buildingMultiplier: 1.5 }, requires: null },
+            { id: 'buildingBoost2', name: 'Building Boost 2', description: 'All buildings produce 100% more cookies', cost: 5000, effect: { buildingMultiplier: 2 }, requires: 'buildingBoost1' },
+        ];
+
+        const BUILDINGS = [
+            { id: 'grandma', name: 'Grandma', description: 'A nice grandma to bake cookies.', baseCost: 100, cookiesPerSecond: 0.5 },
+            { id: 'farm', name: 'Farm', description: 'Grows cookie plants.', baseCost: 500, cookiesPerSecond: 2 },
+            { id: 'mine', name: 'Mine', description: 'Mines cookie dough.', baseCost: 2000, cookiesPerSecond: 10 },
+            { id: 'factory', name: 'Factory', description: 'Produces mass amounts of cookies.', baseCost: 10000, cookiesPerSecond: 50 },
+            { id: 'bank', name: 'Bank', description: 'Generates cookies from interest.', baseCost: 50000, cookiesPerSecond: 250 },
+        ];
+
+        const ACHIEVEMENTS = [
+            { id: 'firstClick', name: 'First Click', description: 'Click the cookie for the first time.', condition: (state) => state.clicks > 0, unlocked: false },
+            { id: 'tenCookies', name: 'Cookie Beginner', description: 'Bake 10 cookies in total.', condition: (state) => state.cookies >= 10, unlocked: false },
+            { id: 'hundredCookies', name: 'Cookie Apprentice', description: 'Bake 100 cookies in total.', condition: (state) => state.cookies >= 100, unlocked: false },
+            { id: 'thousandCookies', name: 'Cookie Master', description: 'Bake 1,000 cookies in total.', condition: (state) => state.cookies >= 1000, unlocked: false },
+            { id: 'millionCookies', name: 'Cookie Millionaire', description: 'Bake 1,000,000 cookies in total.', condition: (state) => state.cookies >= 1000000, unlocked: false },
+            { id: 'firstGrandma', name: 'Grandma\'s Helper', description: 'Hire your first grandma.', condition: (state) => state.buildings.grandma && state.buildings.grandma.count > 0, unlocked: false },
+            { id: 'tenGrandmas', name: 'Grandma\'s Army', description: 'Hire 10 grandmas.', condition: (state) => state.buildings.grandma && state.buildings.grandma.count >= 10, unlocked: false },
+            { id: 'firstFarm', name: 'Farmer', description: 'Build your first farm.', condition: (state) => state.buildings.farm && state.buildings.farm.count > 0, unlocked: false },
+        ];
+
+        const EVENTS = [
+            { id: 'cookieRain', name: 'Cookie Rain', description: 'Cookies are raining! Click the cookie for double cookies for the next 30 seconds!', duration: 30000, effect: { cookiesPerClickMultiplier: 2 } },
+            { id: 'frenzyCookies', name: 'Cookie Frenzy', description: 'Cookie frenzy! All buildings produce 3x cookies for the next 20 seconds!', duration: 20000, effect: { buildingMultiplier: 3 } },
+            { id: 'clickFrenzy', name: 'Click Frenzy', description: 'Click frenzy! Each click produces 7x cookies for the next 15 seconds!', duration: 15000, effect: { cookiesPerClickMultiplier: 7 } },
+        ];
+
+        let activeEvents = [];
+        let totalClicks = 0;
+        
+        // Initialize the game
+        function initGame() {
+            // Set up event listeners
+            cookieClicker.addEventListener('click', clickCookie);
+            saveButton.addEventListener('click', saveGame);
+            loginButton.addEventListener('click', login);
+            
+            // Set up periodic tasks
+            setInterval(updateCookiesPerSecond, 1000);
+            setInterval(saveGame, 60000); // Auto-save every minute
+            setInterval(checkAchievements, 5000);
+            setInterval(triggerRandomEvent, 120000); // Random event every 2 minutes
+            setInterval(updateLeaderboard, 10000);
+            
+            // Initialize upgrades and buildings
+            initializeUpgrades();
+            initializeBuildings();
+            
+            // Set up Firebase listeners
+            listenForMultiplayerEvents();
+        }
+
+        // Log in and start game
+        function login() {
+            const name = playerNameInput.value.trim();
+            if (!name) {
+                showNotification("Please enter a name to start playing!");
+                return;
+            }
+            
+            gameState.playerName = name;
+            gameState.playerId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+            playerNameElement.textContent = name;
+            
+            // Try to load saved game
+            loadGame();
+            
+            // Show game screen
+            loginScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+            
+            // Save initial state
+            saveGame();
+            
+            // Show welcome message
+            showNotification(`Welcome, ${name}! Start clicking to earn cookies!`);
+        }
+
+        // Click the cookie
+        function clickCookie() {
+            // Apply click effects
+            let clickValue = gameState.cookiesPerClick;
+            
+            // Apply event effects
+            activeEvents.forEach(event => {
+                if (event.effect.cookiesPerClickMultiplier) {
+                    clickValue *= event.effect.cookiesPerClickMultiplier;
+                }
+            });
+            
+            gameState.cookies += clickValue;
+            totalClicks++;
+            
+            // Update display
+            updateCookieCounter();
+            
+            // Create click animation
+            createClickAnimation(clickValue);
+            
+            // Check for achievements
+            checkAchievements();
+        }
+
+        // Initialize upgrades
+        function initializeUpgrades() {
+            upgradesContainer.innerHTML = '';
+            
+            UPGRADES.forEach(upgrade => {
+                // Initialize upgrade in game state if not exists
+                if (!gameState.upgrades[upgrade.id]) {
+                    gameState.upgrades[upgrade.id] = { purchased: false };
+                }
+                
+                // Check if requirement is met
+                let requirementMet = true;
+                if (upgrade.requires) {
+                    requirementMet = gameState.upgrades[upgrade.requires] && gameState.upgrades[upgrade.requires].purchased;
+                }
+                
+                // Only show if requirement is met and not purchased
+                if (requirementMet && !gameState.upgrades[upgrade.id].purchased) {
+                    const upgradeElement = document.createElement('div');
+                    upgradeElement.className = 'upgrade-item';
+                    upgradeElement.innerHTML = `
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">${upgrade.name}</div>
+                            <div class="upgrade-desc">${upgrade.description}</div>
+                            <div class="upgrade-cost">${formatNumber(upgrade.cost)} cookies</div>
+                        </div>
+                        <button class="upgrade-button" id="upgrade-${upgrade.id}" ${gameState.cookies < upgrade.cost ? 'disabled' : ''}>Buy</button>
+                    `;
+                    upgradesContainer.appendChild(upgradeElement);
+                    
+                    // Add event listener
+                    document.getElementById(`upgrade-${upgrade.id}`).addEventListener('click', () => purchaseUpgrade(upgrade.id));
+                }
+            });
+            
+            // Update display if no upgrades available
+            if (upgradesContainer.children.length === 0) {
+                upgradesContainer.innerHTML = '<p>No upgrades available at the moment.</p>';
+            }
+        }
+
+        // Initialize buildings
+        function initializeBuildings() {
+            buildingsContainer.innerHTML = '';
+            
+            BUILDINGS.forEach(building => {
+                // Initialize building in game state if not exists
+                if (!gameState.buildings[building.id]) {
+                    gameState.buildings[building.id] = { count: 0 };
+                }
+                
+                const count = gameState.buildings[building.id].count;
+                const cost = calculateBuildingCost(building.id);
+                
+                const buildingElement = document.createElement('div');
+                buildingElement.className = 'building-item';
+                buildingElement.innerHTML = `
+                    <div class="building-info">
+                        <div class="building-name">${building.name} (${count})</div>
+                        <div class="building-desc">${building.description}</div>
+                        <div class="building-production">Each produces ${formatNumber(calculateBuildingProduction(building.id))} cookies/sec</div>
+                        <div class="building-cost">${formatNumber(cost)} cookies</div>
+                    </div>
+                    <button class="building-button" id="building-${building.id}" ${gameState.cookies < cost ? 'disabled' : ''}>Buy</button>
+                `;
+                buildingsContainer.appendChild(buildingElement);
+                
+                // Add event listener
+                document.getElementById(`building-${building.id}`).addEventListener('click', () => purchaseBuilding(building.id));
+            });
+        }
+
+        // Purchase an upgrade
+        function purchaseUpgrade(upgradeId) {
+            const upgrade = UPGRADES.find(u => u.id === upgradeId);
+            
+            if (gameState.cookies >= upgrade.cost && !gameState.upgrades[upgradeId].purchased) {
+                // Deduct cookies
+                gameState.cookies -= upgrade.cost;
+                
+                // Apply upgrade effects
+                if (upgrade.effect.cookiesPerClick) {
+                    gameState.cookiesPerClick += upgrade.effect.cookiesPerClick;
+                }
+                
+                if (upgrade.effect.autoClick) {
+                    // Set up auto-clicker if not already exists
+                    if (!gameState.autoClickSpeed || gameState.autoClickSpeed < upgrade.effect.autoClick) {
+                        gameState.autoClickSpeed = upgrade.effect.autoClick;
+                        
+                        // Start auto-clicker if not already running
+                        if (!window.autoClickerInterval) {
+                            window.autoClickerInterval = setInterval(() => {
+                                gameState.cookies += gameState.cookiesPerClick;
+                                updateCookieCounter();
+                            }, 1000 / gameState.autoClickSpeed);
+                        }
+                    }
+                }
+                
+                if (upgrade.effect.buildingMultiplier) {
+                    gameState.buildingMultiplier = (gameState.buildingMultiplier || 1) * upgrade.effect.buildingMultiplier;
+                }
+                
+                // Mark as purchased
+                gameState.upgrades[upgradeId].purchased = true;
+                
+                // Update displays
+                updateCookieCounter();
+                initializeUpgrades();
+                initializeBuildings();
+                
+                // Show notification
+                showNotification(`Upgrade purchased: ${upgrade.name}`);
+                
+                // Save game
+                saveGame();
+            }
+        }
+
+        // Purchase a building
+        function purchaseBuilding(buildingId) {
+            const building = BUILDINGS.find(b => b.id === buildingId);
+            const cost = calculateBuildingCost(buildingId);
+            
+            if (gameState.cookies >= cost) {
+                // Deduct cookies
+                gameState.cookies -= cost;
+                
+                // Increment building count
+                gameState.buildings[buildingId].count++;
+                
+                // Recalculate CPS
+                calculateCookiesPerSecond();
+                
+                // Update displays
+                updateCookieCounter();
+                initializeBuildings();
+                
+                // Check for achievements
+                checkAchievements();
+                
+                // Save game
+                saveGame();
+            }
+        }
+
+        // Calculate building cost (increases with each purchase)
+        function calculateBuildingCost(buildingId) {
+            const building = BUILDINGS.find(b => b.id === buildingId);
+            const count = gameState.buildings[buildingId].count;
+            return Math.floor(building.baseCost * Math.pow(1.15, count));
+        }
+
+        // Calculate building production (affected by upgrades)
+        function calculateBuildingProduction(buildingId) {
+            const building = BUILDINGS.find(b => b.id === buildingId);
+            let multiplier = gameState.buildingMultiplier || 1;
+            
+            // Apply event effects
+            activeEvents.forEach(event => {
+                if (event.effect.buildingMultiplier) {
+                    multiplier *= event.effect.buildingMultiplier;
+                }
+            });
+            
+            return building.cookiesPerSecond * multiplier;
+        }
+
+        // Calculate total cookies per second
+        function calculateCookiesPerSecond() {
+            let cps = 0;
+            
+            // Add production from buildings
+            for (const buildingId in gameState.buildings) {
+                const building = BUILDINGS.find(b => b.id === buildingId);
+                const count = gameState.buildings[buildingId].count;
+                cps += calculateBuildingProduction(buildingId) * count;
+            }
+            
+            gameState.cookiesPerSecond = cps;
+            return cps;
+        }
+
+        // Update cookies per second (called every second)
+        function updateCookiesPerSecond() {
+            // Add cookies from CPS
+            gameState.cookies += gameState.cookiesPerSecond / 10; // Divide by 10 because we update 10 times per second for smoother counting
+            
+            // Update display
+            updateCookieCounter();
+        }
+
+        // Update cookie counter display
+        function updateCookieCounter() {
+            cookieCounter.textContent = `${formatNumber(Math.floor(gameState.cookies))} cookies`;
+            cpsCounter.textContent = `${formatNumber(gameState.cookiesPerSecond)} per second`;
+            
+            // Update buttons (enable/disable based on cookie count)
+            updateButtons();
+        }
+
+        // Update buttons based on current cookie count
+        function updateButtons() {
+            // Update upgrade buttons
+            UPGRADES.forEach(upgrade => {
+                const button = document.getElementById(`upgrade-${upgrade.id}`);
+                if (button) {
+                    button.disabled = gameState.cookies < upgrade.cost || gameState.upgrades[upgrade.id].purchased;
+                }
+            });
+            
+            // Update building buttons
+            BUILDINGS.forEach(building => {
+                const button = document.getElementById(`building-${building.id}`);
+                if (button) {
+                    button.disabled = gameState.cookies < calculateBuildingCost(building.id);
+                }
+            });
+        }
+
+        // Format large numbers with commas
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M';
+            } else if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K';
+            } else {
+                return num.toFixed(0);
+            }
+        }
+
+        // Create click animation
+        function createClickAnimation(value) {
+            const clickText = document.createElement('div');
+            clickText.textContent = '+' + formatNumber(value);
+            clickText.style.position = 'absolute';
+            clickText.style.left = Math.random() * 100 + 'px';
+            clickText.style.top = Math.random() * 100 + 'px';
+            clickText.style.color = '#8c5e2b';
+            clickText.style.fontWeight = 'bold';
+            clickText.style.pointerEvents = 'none';
+            clickText.style.animation = 'fadeUp 1s forwards';
+            
+            // Add animation keyframes
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeUp {
+                    0% { opacity: 1; transform: translateY(0); }
+                    100% { opacity: 0; transform: translateY(-50px); }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            cookieClicker.appendChild(clickText);
+            
+            // Remove after animation completes
+            setTimeout(() => {
+                clickText.remove();
+                style.remove();
+            }, 1000);
+        }
+
+        // Check achievements
+        function checkAchievements() {
+            let newAchievements = false;
+            
+            ACHIEVEMENTS.forEach(achievement => {
+                // Skip if already unlocked
+                if (gameState.achievements && gameState.achievements.includes(achievement.id)) {
+                    return;
+                }
+                
+                // Check condition
+                const stateWithClicks = {...gameState, clicks: totalClicks};
+                if (achievement.condition(stateWithClicks)) {
+                    // Unlock achievement
+                    if (!gameState.achievements) {
+                        gameState.achievements = [];
+                    }
+                    gameState.achievements.push(achievement.id);
+                    
+                    // Show achievement notification
+                    showAchievement(achievement.name, achievement.description);
+                    
+                    // Save to Firebase
+                    saveAchievement(achievement.id);
+                    
+                    newAchievements = true;
+                }
+            });
+            
+            // Save game if new achievements
+            if (newAchievements) {
+                saveGame();
+            }
+        }
+
+        // Show achievement notification
+        function showAchievement(name, description) {
+            achievementElement.innerHTML = `
+                <strong>Achievement Unlocked: ${name}</strong><br>
+                ${description}
+            `;
+            achievementElement.style.opacity = '1';
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                achievementElement.style.opacity = '0';
+            }, 5000);
+        }
+
+        // Show notification
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            notificationContainer.appendChild(notification);
+            
+            // Remove after animation completes
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Trigger random event
+        function triggerRandomEvent() {
+            // 20% chance of triggering an event
+            if (Math.random() < 0.2) {
+                const event = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+                
+                // Show event notification
+                const eventElement = document.createElement('div');
+                eventElement.className = 'event-notification';
+                eventElement.innerHTML = `
+                    <strong>${event.name}</strong><br>
+                    ${event.description}
+                `;
+                eventContainer.innerHTML = '';
+                eventContainer.appendChild(eventElement);
+                
+                // Add to active events
+                const activeEvent = {...event, endTime: Date.now() + event.duration};
+                activeEvents.push(activeEvent);
+                
+                // Schedule event end
+                setTimeout(() => {
+                    // Remove from active events
+                    activeEvents = activeEvents.filter(e => e.id !== event.id);
+                    
+                    // Remove notification if it's the same event
+                    if (eventContainer.firstChild && eventContainer.firstChild.querySelector('strong').textContent === event.name) {
+                        eventContainer.innerHTML = '';
+                    }
+                    
+                    // Update displays
+                    calculateCookiesPerSecond();
+                    updateCookieCounter();
+                    
+                    // Show notification
+                    showNotification(`${event.name} has ended.`);
+                }, event.duration);
+                
+                // Update displays
+                calculateCookiesPerSecond();
+                updateCookieCounter();
+                
+                // Notify other players
+                broadcastEvent(event.id);
+            }
+        }
+
+        // Save game to Firebase
+        function saveGame() {
+            const saveData = {
+                ...gameState,
+                lastSaved: Date.now()
+            };
+            
+            // Save to Firebase
+            set(ref(database, `players/${gameState.playerId}`), saveData)
+                .then(() => {
+                    console.log("Game saved successfully");
+                })
+                .catch((error) => {
+                    console.error("Error saving game:", error);
+                    showNotification("Failed to save game. Please check your connection.");
+                });
+        }
+
+        // Load game from Firebase
+        function loadGame() {
+            // Try to load from Firebase
+            get(ref(database, `players/${gameState.playerId}`))
+                .then((snapshot) => {
+                    if (snapshot.exists()) {
+                        const savedData = snapshot.val();
+                        gameState = savedData;
+                        
+                        // Update displays
+                        updateCookieCounter();
+                        initializeUpgrades();
+                        initializeBuildings();
+                        
+                        showNotification("Game loaded successfully!");
+                    } else {
+                        console.log("No saved game found, starting new game");
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error loading game:", error);
+                    showNotification("Failed to load game. Starting new game.");
+                });
+        }
+
+        // Save achievement to Firebase
+        function saveAchievement(achievementId) {
+            // Save to achievements leaderboard
+            const achievementData = {
+                playerId: gameState.playerId,
+                playerName: gameState.playerName,
+                achievementId: achievementId,
+                timestamp: Date.now()
+            };
+            
+            // Push to Firebase achievements collection
+            const achievementsRef = ref(database, 'achievements');
+            const newAchievementRef = ref(database, `achievements/${gameState.playerId}_${achievementId}`);
+            set(newAchievementRef, achievementData)
+                .catch((error) => {
+                    console.error("Error saving achievement:", error);
+                });
+        }
+
+        // Broadcast event to other players
+        function broadcastEvent(eventId) {
+            const eventData = {
+                playerId: gameState.playerId,
+                playerName: gameState.playerName,
+                eventId: eventId,
+                timestamp: Date.now()
+            };
+            
+            // Push to Firebase events collection
+            const eventsRef = ref(database, 'events');
+            const newEventRef = ref(database, `events/${Date.now()}`);
+            set(newEventRef, eventData)
+                .catch((error) => {
+                    console.error("Error broadcasting event:", error);
+                });
+        }
+
+        // Listen for multiplayer events
+        function listenForMultiplayerEvents() {
+            // Listen for achievements
+            onValue(ref(database, 'achievements'), (snapshot) => {
+                if (snapshot.exists()) {
+                    const achievements = snapshot.val();
+                    
+                    // Find recent achievements (last 60 seconds)
+                    const recentAchievements = Object.values(achievements)
+                        .filter(a => a.playerId !== gameState.playerId && a.timestamp > Date.now() - 60000)
+                        .sort((a, b) => b.timestamp - a.timestamp);
+                    
+                    // Show notifications for recent achievements
+                    recentAchievements.forEach(achievement => {
+                        const achievementInfo = ACHIEVEMENTS.find(a => a.id === achievement.achievementId);
+                        if (achievementInfo) {
+                            showNotification(`${achievement.playerName} just unlocked: ${achievementInfo.name}!`);
+                        }
+                    });
+                }
+            });
+            
+            // Listen for events
+            onValue(ref(database, 'events'), (snapshot) => {
+                if (snapshot.exists()) {
+                    const events = snapshot.val();
+                    
+                    // Find recent events (last 10 seconds)
+                    const recentEvents = Object.values(events)
+                        .filter(e => e.playerId !== gameState.playerId && e.timestamp > Date.now() - 10000)
+                        .sort((a, b) => b.timestamp - a.timestamp);
+                    
+                    // Show notifications for recent events
+                    recentEvents.forEach(event => {
+                        const eventInfo = EVENTS.find(e => e.id === event.eventId);
+                        if (eventInfo) {
+                            showNotification(`${event.playerName} just triggered: ${eventInfo.name}!`);
+                        }
+                    });
+                }
+            });
+        }
+
+        // Update leaderboard
+        function updateLeaderboard() {
+            // Get all players
+            get(ref(database, 'players'))
+                .then((snapshot) => {
+                    if (snapshot.exists()) {
+                        const players = snapshot.val();
+                        
+                        // Convert to array and sort by cookies
+                        const playersArray = Object.values(players)
+                            .sort((a, b) => b.cookies - a.cookies);
+                        
+                        // Limit to top 10
+                        const topPlayers = playersArray.slice(0, 10);
+                        
+                        // Update leaderboard display
+                        leaderboardContainer.innerHTML = '';
+                        
+                        topPlayers.forEach((player, index) => {
+                            const playerElement = document.createElement('div');
+                            playerElement.className = 'leaderboard-item';
+                            
+                            // Highlight current player
+                            if (player.playerId === gameState.playerId) {
+                                playerElement.style.backgroundColor = '#ffe8c8';
+                            }
+                            
+                            playerElement.innerHTML = `
+                                <span class="leaderboard-rank">#${index + 1}</span>
+                                <span class="leaderboard-name">${player.playerName}</span>
+                                <span class="leaderboard-cookies">${formatNumber(Math.floor(player.cookies))}</span>
+                            `;
+                            
+                            leaderboardContainer.appendChild(playerElement);
+                        });
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error updating leaderboard:", error);
+                });
+        }
+
+        // Start the game when the page loads
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>
