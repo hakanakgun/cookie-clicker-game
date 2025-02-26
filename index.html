@@ -48,6 +48,9 @@
             position: relative;
             cursor: pointer;
             transition: transform 0.05s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         
         .pastry-container:active {
@@ -55,8 +58,8 @@
         }
         
         .pastry {
-            width: 200px;
-            height: 200px;
+            width: 300px;  /* increased size */
+            height: 300px; /* increased size */
             background-color: #c17e40;
             border-radius: 50%;
             display: flex;
@@ -80,16 +83,16 @@
             position: absolute;
             background-color: #3a250e;
             border-radius: 50%;
-            width: 15px;
-            height: 15px;
+            width: 20px;
+            height: 20px;
         }
         
-        .chip:nth-child(1) { top: 20%; left: 30%; }
-        .chip:nth-child(2) { top: 30%; right: 30%; }
-        .chip:nth-child(3) { bottom: 20%; left: 40%; }
-        .chip:nth-child(4) { bottom: 40%; right: 25%; }
-        .chip:nth-child(5) { top: 50%; left: 20%; }
-        .chip:nth-child(6) { bottom: 30%; right: 40%; }
+        .chip:nth-child(1) { top: 25%; left: 35%; }
+        .chip:nth-child(2) { top: 35%; right: 35%; }
+        .chip:nth-child(3) { bottom: 25%; left: 45%; }
+        .chip:nth-child(4) { bottom: 35%; right: 30%; }
+        .chip:nth-child(5) { top: 55%; left: 25%; }
+        .chip:nth-child(6) { bottom: 35%; right: 45%; }
         
         .pastry-counter {
             font-size: 24px;
