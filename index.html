@@ -19,12 +19,9 @@
             position: absolute;
             width: 50px;
             height: 50px;
-            background: url('pointer_finger.png') no-repeat center center; /* Update with your image path */
+            background: url('pointer_finger.png') no-repeat center center; /* Update with your pointer image path */
             background-size: contain;
             pointer-events: none;
-            animation: pokeCookie 2s infinite;
-            /* start hidden, we'll unhide it when the upgrade is purchased */
-            display: none;
         }
 
         @keyframes pokeCookie {
@@ -350,7 +347,7 @@
                         <div class="chip"></div>
                         <div class="chip"></div>
                         <div class="chip"></div>
-                        <div class="auto-clicker-cursor" id="autoClickerCursor"></div>
+                        <div class="auto-clicker-cursor" id="autoClickerCursor" style="display: none;"></div>
                     </div>
                 </div>
                 <div class="pastry-counter" id="pastry-counter">0 cookies</div>
@@ -673,6 +670,117 @@
                 pointerElem.style.display = 'block';
             }
         }
+
+        // Global variables for pointer animation
+        let pointerAngle = 0;           // Current angle in radians
+        const rotationSpeed = 0.01;     // Adjust for slower or faster rotation (radians per frame)
+        const pointerRadius = 180;      // Distance from cookie center (adjust as needed)
+
+        function updatePointerPosition() {
+            const pointer = document.getElementById('autoClickerCursor');
+            const cookieRect = cookieClicker.getBoundingClientRect();
+            // Calculate center of the cookie container
+            const centerX = cookieRect.width / 2;
+            const centerY = cookieRect.height / 2;
+            
+            // Calculate pointer's position along the circular path
+            const x = centerX + pointerRadius * Math.cos(pointerAngle) - pointer.offsetWidth / 2;
+            const y = centerY + pointerRadius * Math.sin(pointerAngle) - pointer.offsetHeight / 2;
+            
+            pointer.style.left = `${x}px`;
+            pointer.style.top = `${y}px`;
+            
+            // Increment the angle for next frame (clockwise rotation)
+            pointerAngle += rotationSpeed;
+            
+            requestAnimationFrame(updatePointerPosition);
+        }
+
+        function pokeCookie() {
+            const pointer = document.getElementById('autoClickerCursor');
+            const cookieRect = cookieClicker.getBoundingClientRect();
+            const centerX = cookieRect.width / 2;
+            const centerY = cookieRect.height / 2;
+            
+            // Amount to move inward so the upper side touches the cookie
+            const pokeOffset = 25; // adjust as needed
+            // Save the current angle for this poke event
+            const currentAngle = pointerAngle;
+            
+            // Calculate the "poked" position (inward along the radial line)
+            const newRadius = pointerRadius - pokeOffset;
+            const pokedX = centerX + newRadius * Math.cos(currentAngle) - pointer.offsetWidth / 2;
+            const pokedY = centerY + newRadius * Math.sin(currentAngle) - pointer.offsetHeight / 2;
+            
+            // Temporarily set a CSS transition for smooth movement
+            const originalTransition = pointer.style.transition;
+            pointer.style.transition = "all 0.2s ease";
+            
+            // Move pointer inward
+            pointer.style.left = `${pokedX}px`;
+            pointer.style.top = `${pokedY}px`;
+            
+            // After 200ms, revert back to the circular path position
+            setTimeout(() => {
+                // Recalculate the normal position at the current angle
+                const normalX = centerX + pointerRadius * Math.cos(currentAngle) - pointer.offsetWidth / 2;
+                const normalY = centerY + pointerRadius * Math.sin(currentAngle) - pointer.offsetHeight / 2;
+                pointer.style.left = `${normalX}px`;
+                pointer.style.top = `${normalY}px`;
+                
+                // Restore transition after another 200ms
+                setTimeout(() => {
+                    pointer.style.transition = originalTransition;
+                }, 200);
+            }, 200);
+        }
+
+        function purchaseUpgrade(upgradeId) {
+            const upgrade = UPGRADES.find(u => u.id === upgradeId);
+            
+            if (gameState.cookies >= upgrade.cost && !gameState.upgrades[upgradeId].purchased) {
+                gameState.cookies -= upgrade.cost;
+                
+                if (upgrade.effect.cookiesPerClick) {
+                    gameState.cookiesPerClick += upgrade.effect.cookiesPerClick;
+                }
+                
+                if (upgrade.effect.autoClick) {
+                    // Increase autoClickSpeed if necessary
+                    if (!gameState.autoClickSpeed || gameState.autoClickSpeed < upgrade.effect.autoClick) {
+                        gameState.autoClickSpeed = upgrade.effect.autoClick;
+                        
+                        // Start auto-clicker if not already running
+                        if (!window.autoClickerInterval) {
+                            // For autoClickSpeed=0.2, interval will be 1000/0.2 = 5000ms (5 seconds)
+                            window.autoClickerInterval = setInterval(() => {
+                                gameState.cookies += gameState.cookiesPerClick;
+                                updateCookieCounter();
+                                pokeCookie(); // Sync the poke animation with the auto-click event
+                            }, 1000 / gameState.autoClickSpeed);
+                        }
+                    }
+                    // Show the pointer if not already visible
+                    const pointerElem = document.getElementById('autoClickerCursor');
+                    if (pointerElem.style.display === 'none') {
+                        pointerElem.style.display = 'block';
+                        updatePointerPosition(); // Start the continuous rotation
+                    }
+                }
+                
+                if (upgrade.effect.buildingMultiplier) {
+                    gameState.buildingMultiplier = (gameState.buildingMultiplier || 1) * upgrade.effect.buildingMultiplier;
+                }
+                
+                gameState.upgrades[upgradeId].purchased = true;
+                updateCookieCounter();
+                initializeUpgrades();
+                initializeBuildings();
+                showNotification(`Upgrade purchased: ${upgrade.name}`);
+                saveGame();
+            }
+        }
+
 
         // Purchase a building
         function purchaseBuilding(buildingId) {
