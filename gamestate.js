@@ -1,4 +1,19 @@
 // gamestate.js
+import { 
+  updateUICounters, 
+  createClickAnimation, 
+  showNotification, 
+  showAchievement 
+} from './ui.js';
+
+import { 
+  saveGame, 
+  loadGame, 
+  updateLeaderboard, 
+  broadcastEvent, 
+  saveAchievement 
+} from './firebaseIntegration.js';
+
 export let gameState = {
   cookies: 0,
   cookiesPerClick: 1,
@@ -66,7 +81,7 @@ export function initGame() {
   setInterval(saveGame, 60000);
   setInterval(checkAchievements, 5000);
   setInterval(triggerRandomEvent, 120000);
-  setInterval(() => import('./firebaseIntegration.js').then(mod => mod.updateLeaderboard()), 10000);
+  setInterval(() => updateLeaderboard(), 10000);
   initializeUpgrades();
   initializeBuildings();
   loadGame();
