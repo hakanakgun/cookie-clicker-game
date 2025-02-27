@@ -593,9 +593,10 @@
         }
 
         // Purchase an upgrade
+        // In your existing purchaseUpgrade function:
         function purchaseUpgrade(upgradeId) {
             const upgrade = UPGRADES.find(u => u.id === upgradeId);
-            
+
             if (gameState.cookies >= upgrade.cost && !gameState.upgrades[upgradeId].purchased) {
                 // Deduct cookies
                 gameState.cookies -= upgrade.cost;
@@ -606,7 +607,7 @@
                 }
                 
                 if (upgrade.effect.autoClick) {
-                    // Set up auto-clicker if not already exists
+                    // Increase autoClickSpeed
                     if (!gameState.autoClickSpeed || gameState.autoClickSpeed < upgrade.effect.autoClick) {
                         gameState.autoClickSpeed = upgrade.effect.autoClick;
                         
@@ -618,6 +619,9 @@
                             }, 1000 / gameState.autoClickSpeed);
                         }
                     }
+                    
+                    // Show the pointer cursor animation
+                    showAutoClickerCursor();
                 }
                 
                 if (upgrade.effect.buildingMultiplier) {
@@ -627,7 +631,7 @@
                 // Mark as purchased
                 gameState.upgrades[upgradeId].purchased = true;
                 
-                // Update displays
+                // Update display
                 updateCookieCounter();
                 initializeUpgrades();
                 initializeBuildings();
@@ -637,6 +641,15 @@
                 
                 // Save game
                 saveGame();
+            }
+        }
+
+        // Helper function to show the pointer
+        function showAutoClickerCursor() {
+            const pointerElem = document.getElementById('autoClickerCursor');
+            if (pointerElem) {
+                // Make sure it's displayed
+                pointerElem.style.display = 'block';
             }
         }
 
