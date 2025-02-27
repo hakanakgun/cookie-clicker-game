@@ -3,7 +3,9 @@ import {
   updateUICounters, 
   createClickAnimation, 
   showNotification, 
-  showAchievement 
+  showAchievement, 
+  pokeCookie, 
+  startPointerAnimation 
 } from './ui.js';
 
 import { 
@@ -79,7 +81,7 @@ export function initGame() {
   const pastryClicker = document.getElementById('pastry-clicker');
   pastryClicker.addEventListener('click', clickCookie);
   setInterval(updateCookiesPerSecond, 1000);
-  setInterval(saveGame, 60000);
+  // Removed redundant setInterval(saveGame, 60000)
   setInterval(checkAchievements, 5000);
   setInterval(triggerRandomEvent, 120000);
   setInterval(() => updateLeaderboard(), 10000);
@@ -87,6 +89,7 @@ export function initGame() {
   initializeBuildings();
   loadGame();
 }
+
 
 export function login() {
   const nameInput = document.getElementById('player-name-input');
@@ -199,17 +202,15 @@ export function purchaseUpgrade(upgradeId) {
           if (gameState.autoClickAccumulator >= 1) {
             const bounces = Math.floor(gameState.autoClickAccumulator);
             for (let i = 0; i < bounces; i++) {
-              import('./ui.js').then(mod => {
-                mod.pokeCookie();
-                mod.createClickAnimation(gameState.cookiesPerClick);
-              });
+              pokeCookie();
+              createClickAnimation(gameState.cookiesPerClick);
             }
             gameState.autoClickAccumulator -= bounces;
           }
         }, 200);
       }
       document.getElementById('autoClickerCursor').style.display = 'block';
-      import('./ui.js').then(mod => mod.startPointerAnimation());
+      startPointerAnimation();
     }
     if (upgrade.effect.buildingMultiplier) {
       gameState.buildingMultiplier = (gameState.buildingMultiplier || 1) * upgrade.effect.buildingMultiplier;
@@ -324,3 +325,10 @@ function triggerRandomEvent() {
     broadcastEvent(event.id);
   }
 }
+
+window.addEventListener('beforeunload', () => {
+  if (autoClickerInterval) {
+    clearInterval(autoClickerInterval);
+    autoClickerInterval = null;
+  }
+});
