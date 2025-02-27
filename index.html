@@ -16,13 +16,15 @@
         }
         
         .auto-clicker-cursor {
-            position: absolute;
-            width: 50px;
-            height: 50px;
-            background: url('pointer_finger.png') no-repeat center center; /* Update with your pointer image path */
-            background-size: contain;
-            pointer-events: none;
+          position: absolute;
+          width: 50px;
+          height: 50px;
+          background: url('pointer_finger.png') no-repeat center center; /* Your pointer image */
+          background-size: contain;
+          pointer-events: none;
+          transform-origin: center center; /* Helpful for rotation */
         }
+
 
         @keyframes pokeCookie {
             0%   { transform: translate(-50%, -50%) rotate(0deg); }
@@ -620,68 +622,83 @@
         }
 
         // Global variables for pointer animation
-        let pointerAngle = 0;           // Current angle in radians
-        const rotationSpeed = 0.01;     // Adjust for slower or faster rotation (radians per frame)
-        const pointerRadius = 180;      // Distance from cookie center (adjust as needed)
+        let pointerAngle = 0;          // Current angle in radians
+        const rotationSpeed = 0.01;    // Speed of pointer orbit (radians/frame)
+        const pointerRadius = 120;     // Distance from cookie center to pointer
 
         function updatePointerPosition() {
-            const pointer = document.getElementById('autoClickerCursor');
-            const cookieRect = cookieClicker.getBoundingClientRect();
+          const pointer = document.getElementById('autoClickerCursor');
+          const pastry = document.getElementById('pastry');
+          const container = document.getElementById('cookieContainer');
 
-            // Calculate center of the cookie
-            const centerX = cookieRect.left + cookieRect.width / 2;
-            const centerY = cookieRect.top + cookieRect.height / 2;
+          // 1. Get bounding rectangles
+          const pastryRect = pastry.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
 
-            // Calculate pointer's position along the circular path
-            const pointerX = centerX + pointerRadius * Math.cos(pointerAngle);
-            const pointerY = centerY + pointerRadius * Math.sin(pointerAngle);
+          // 2. Compute the cookie's center in the container's coordinate space
+          const cookieCenterX = (pastryRect.left - containerRect.left) + pastryRect.width / 2;
+          const cookieCenterY = (pastryRect.top - containerRect.top) + pastryRect.height / 2;
 
-            // Calculate angle of rotation (pointing towards the cookie)
-            const angleDeg = (pointerAngle * 180) / Math.PI + 90; // Adjust 90 degrees so it points properly
+          // 3. Compute pointer’s orbit position
+          //    pointerAngle is incremented each frame for continuous rotation
+          const pointerX = cookieCenterX + pointerRadius * Math.cos(pointerAngle);
+          const pointerY = cookieCenterY + pointerRadius * Math.sin(pointerAngle);
 
-            // Update pointer position
-            pointer.style.left = `${pointerX - pointer.offsetWidth / 2}px`;
-            pointer.style.top = `${pointerY - pointer.offsetHeight / 2}px`;
-            pointer.style.transform = `rotate(${angleDeg}deg)`;
+          // 4. Update pointer position
+          pointer.style.left = `${pointerX - pointer.offsetWidth / 2}px`;
+          pointer.style.top = `${pointerY - pointer.offsetHeight / 2}px`;
 
-            // Increment the angle for circular movement (clockwise)
-            pointerAngle += rotationSpeed;
+          // 5. Rotate the pointer so its top faces the cookie
+          //    Convert pointerAngle to degrees, then add 90 so top edge points inward
+          const angleDeg = (pointerAngle * 180) / Math.PI + 90;
+          pointer.style.transform = `rotate(${angleDeg}deg)`;
 
-            requestAnimationFrame(updatePointerPosition);
+          // 6. Increment the angle for next frame (clockwise)
+          pointerAngle += rotationSpeed;
+
+          requestAnimationFrame(updatePointerPosition);
         }
+
 
 
         function pokeCookie() {
-            const pointer = document.getElementById('autoClickerCursor');
-            const cookieRect = cookieClicker.getBoundingClientRect();
-            const centerX = cookieRect.left + cookieRect.width / 2;
-            const centerY = cookieRect.top + cookieRect.height / 2;
+          const pointer = document.getElementById('autoClickerCursor');
+          const pastry = document.getElementById('pastry');
+          const container = document.getElementById('cookieContainer');
 
-            // Calculate inward movement distance
-            const pokeOffset = 20;
-            const currentAngle = pointerAngle;
+          const pastryRect = pastry.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
 
-            // Move inward toward the cookie
-            const pokeX = centerX + (pointerRadius - pokeOffset) * Math.cos(currentAngle);
-            const pokeY = centerY + (pointerRadius - pokeOffset) * Math.sin(currentAngle);
+          // Cookie center in container space
+          const cookieCenterX = (pastryRect.left - containerRect.left) + pastryRect.width / 2;
+          const cookieCenterY = (pastryRect.top - containerRect.top) + pastryRect.height / 2;
 
-            // Apply poke animation
-            pointer.style.transition = "all 0.2s ease";
-            pointer.style.left = `${pokeX - pointer.offsetWidth / 2}px`;
-            pointer.style.top = `${pokeY - pointer.offsetHeight / 2}px`;
+          // Move pointer inward by some offset
+          const pokeOffset = 20;
+          const currentAngle = pointerAngle;
 
-            // Restore normal position after poking
+          const pokeX = cookieCenterX + (pointerRadius - pokeOffset) * Math.cos(currentAngle);
+          const pokeY = cookieCenterY + (pointerRadius - pokeOffset) * Math.sin(currentAngle);
+
+          pointer.style.transition = "all 0.2s ease";
+          pointer.style.left = `${pokeX - pointer.offsetWidth / 2}px`;
+          pointer.style.top = `${pokeY - pointer.offsetHeight / 2}px`;
+
+          // After 200ms, move back to normal orbit
+          setTimeout(() => {
+            // Recompute normal orbit position
+            const normalX = cookieCenterX + pointerRadius * Math.cos(currentAngle);
+            const normalY = cookieCenterY + pointerRadius * Math.sin(currentAngle);
+            pointer.style.left = `${normalX - pointer.offsetWidth / 2}px`;
+            pointer.style.top = `${normalY - pointer.offsetHeight / 2}px`;
+
+            // Reset transition
             setTimeout(() => {
-                const normalX = centerX + pointerRadius * Math.cos(currentAngle);
-                const normalY = centerY + pointerRadius * Math.sin(currentAngle);
-                pointer.style.left = `${normalX - pointer.offsetWidth / 2}px`;
-                pointer.style.top = `${normalY - pointer.offsetHeight / 2}px`;
-
-                setTimeout(() => {
-                    pointer.style.transition = "";
-                }, 200);
+              pointer.style.transition = "";
             }, 200);
+          }, 200);
         }
+
 
 
         // Purchase an upgrade
@@ -699,16 +716,13 @@
                         window.autoClickerInterval = setInterval(() => {
                             gameState.cookies += gameState.cookiesPerClick;
                             updateCookieCounter();
-                            pokeCookie(); // Sync the poke animation with auto-click event
+                            pokeCookie(); // Poke each time an auto-click happens
                         }, 1000 / gameState.autoClickSpeed);
                     }
 
-                    // Show the pointer if not already visible
-                    const pointerElem = document.getElementById('autoClickerCursor');
-                    if (pointerElem.style.display === 'none') {
-                        pointerElem.style.display = 'block';
-                        updatePointerPosition(); // Start circular motion
-                    }
+                    /// Show the pointer and start orbit
+                    document.getElementById('autoClickerCursor').style.display = 'block';
+                    updatePointerPosition();
                 }
 
                 gameState.upgrades[upgradeId].purchased = true;
