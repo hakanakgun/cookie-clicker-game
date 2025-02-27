@@ -330,6 +330,7 @@ function triggerRandomEvent() {
     }
   }
 
+// Clear auto-clicker interval on unload
 window.addEventListener('beforeunload', () => {
   if (autoClickerInterval) {
     clearInterval(autoClickerInterval);

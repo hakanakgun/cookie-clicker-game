@@ -5,13 +5,7 @@ import { gameState } from './gamestate.js';
 import { showNotification } from './ui.js';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyD9CTMnRQaaHJwZ7Nh8BXyqTSauNI-55no",
-  authDomain: "cookie-clicker-game-d6d0a.firebaseapp.com",
-  databaseURL: "https://cookie-clicker-game-d6d0a-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "cookie-clicker-game-d6d0a",
-  storageBucket: "cookie-clicker-game-d6d0a.firebasestorage.app",
-  messagingSenderId: "232493349168",
-  appId: "1:232493349168:web:860392bc64687b8865f0f5"
+
 };
 
 const app = initializeApp(firebaseConfig);
@@ -60,6 +54,8 @@ export function saveAchievement(achievementId) {
   set(newAchievementRef, achievementData).catch(error => console.error("Error saving achievement:", error));
 }
 
+import { push } from 'https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js';
+
 export function broadcastEvent(eventId) {
   const eventData = {
     playerId: gameState.playerId,
@@ -67,9 +63,11 @@ export function broadcastEvent(eventId) {
     eventId: eventId,
     timestamp: Date.now()
   };
-  const newEventRef = ref(database, `events/${Date.now()}`);
+  const eventsRef = ref(database, 'events');
+  const newEventRef = push(eventsRef); // Generates a unique key
   set(newEventRef, eventData).catch(error => console.error("Error broadcasting event:", error));
 }
+
 
 export function initFirebaseListeners() {
   onValue(ref(database, 'achievements'), snapshot => {
