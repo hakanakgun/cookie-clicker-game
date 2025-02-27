@@ -304,27 +304,31 @@ function checkAchievements() {
 
 function triggerRandomEvent() {
   if (Math.random() < 0.2) {
-    const event = EVENTS[Math.floor(Math.random() * EVENTS.length)];
-    const eventContainer = document.getElementById('event-container');
-    const eventElem = document.createElement('div');
-    eventElem.className = 'event-notification';
-    eventElem.innerHTML = `<strong>${event.name}</strong><br>${event.description}`;
-    eventContainer.appendChild(eventElem);
-    const activeEvent = { ...event, endTime: Date.now() + event.duration };
-    window.activeEvents = window.activeEvents || [];
-    window.activeEvents.push(activeEvent);
-    setTimeout(() => {
-      window.activeEvents = window.activeEvents.filter(e => e.id !== event.id);
-      if (eventContainer.contains(eventElem)) eventContainer.removeChild(eventElem);
+    // Prevent overlapping events by ensuring no active events exist
+    if (window.activeEvents && window.activeEvents.length > 0) return;
+    const EVENT_PROBABILITY = 0.2; // Tunable probability for triggering an event
+    if (Math.random() < EVENT_PROBABILITY) {
+      const event = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+      const eventContainer = document.getElementById('event-container');
+      const eventElem = document.createElement('div');
+      eventElem.className = 'event-notification';
+      eventElem.innerHTML = `<strong>${event.name}</strong><br>${event.description}`;
+      eventContainer.appendChild(eventElem);
+      const activeEvent = { ...event, endTime: Date.now() + event.duration };
+      window.activeEvents = window.activeEvents || [];
+      window.activeEvents.push(activeEvent);
+      setTimeout(() => {
+        window.activeEvents = window.activeEvents.filter(e => e.id !== event.id);
+        if (eventContainer.contains(eventElem)) eventContainer.removeChild(eventElem);
+        calculateCookiesPerSecond();
+        updateUICounters();
+        showNotification(`${event.name} has ended.`);
+      }, event.duration);
       calculateCookiesPerSecond();
       updateUICounters();
-      showNotification(`${event.name} has ended.`);
-    }, event.duration);
-    calculateCookiesPerSecond();
-    updateUICounters();
-    broadcastEvent(event.id);
+      broadcastEvent(event.id);
+    }
   }
-}
 
 window.addEventListener('beforeunload', () => {
   if (autoClickerInterval) {
