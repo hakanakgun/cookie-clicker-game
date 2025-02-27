@@ -306,5 +306,3 @@ function triggerRandomEvent() {
     broadcastEvent(event.id);
   }
 }
-
-export { saveGame };
