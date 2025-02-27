@@ -1,9 +1,21 @@
 // gamestate.js
-import { updateUICounters, showNotification, createClickAnimation, showAchievement } from './ui.js';
-import { saveGame, loadGame, broadcastEvent } from './firebaseIntegration.js';
+export let gameState = {
+  cookies: 0,
+  cookiesPerClick: 1,
+  cookiesPerSecond: 0,
+  autoClickSpeed: 0,
+  upgrades: {},
+  buildings: {},
+  achievements: [],
+  totalClicks: 0,
+  autoClickAccumulator: 0,
+  buildingMultiplier: 1,
+  playerName: "",
+  playerId: ""
+};
 
 export const UPGRADES = [
-  { id: 'cursor1', name: 'Cursor Level 1', description: '+1 cookie per click', cost: 50, effect: { cookiesPerClick: 1 }, requires: null },
+  { id: 'cursor1', name: 'Cursor Level 1', description: '+1 cookie per click', cost: 50,  effect: { cookiesPerClick: 1 }, requires: null },
   { id: 'cursor2', name: 'Cursor Level 2', description: '+2 cookies per click', cost: 200, effect: { cookiesPerClick: 2 }, requires: 'cursor1' },
   { id: 'cursor3', name: 'Cursor Level 3', description: '+3 cookies per click', cost: 500, effect: { cookiesPerClick: 3 }, requires: 'cursor2' },
   { id: 'autoclick1', name: 'Auto Clicker 1', description: 'Clicks automatically once every 10 seconds', cost: 100, effect: { autoClick: 0.1 }, requires: null },
@@ -13,12 +25,20 @@ export const UPGRADES = [
 ];
 
 export const BUILDINGS = [
-  { id: 'grandma', name: 'Grandma', description: 'A nice grandma to bake cookies.', baseCost: 100, cookiesPerSecond: 0.5 },
-  { id: 'farm', name: 'Farm', description: 'Grows cookie plants.', baseCost: 500, cookiesPerSecond: 2 },
-  { id: 'mine', name: 'Mine', description: 'Mines cookie dough.', baseCost: 2000, cookiesPerSecond: 10 },
-  { id: 'factory', name: 'Factory', description: 'Produces mass amounts of cookies.', baseCost: 10000, cookiesPerSecond: 50 },
-  { id: 'bank', name: 'Bank', description: 'Generates cookies from interest.', baseCost: 50000, cookiesPerSecond: 250 }
+  { id: 'grandma', name: 'Grandma',  description: 'A nice grandma to bake cookies.', baseCost: 100,   cookiesPerSecond: 0.5 },
+  { id: 'farm',    name: 'Farm',     description: 'Grows cookie plants.',             baseCost: 500,   cookiesPerSecond: 2   },
+  { id: 'mine',    name: 'Mine',     description: 'Mines cookie dough.',              baseCost: 2000,  cookiesPerSecond: 10  },
+  { id: 'factory', name: 'Factory',  description: 'Produces mass amounts of cookies.',baseCost: 10000, cookiesPerSecond: 50  },
+  { id: 'bank',    name: 'Bank',     description: 'Generates cookies from interest.', baseCost: 50000, cookiesPerSecond: 250 }
 ];
+
+// Calculate how much it costs to buy the next building of a given type
+export function calculateBuildingCost(buildingId) {
+  const building = BUILDINGS.find(b => b.id === buildingId);
+  if (!building) return 0; // Fallback if not found
+  const count = gameState.buildings[buildingId]?.count || 0;
+  return Math.floor(building.baseCost * Math.pow(1.15, count));
+}
 
 export const ACHIEVEMENTS = [
   { id: 'firstClick', name: 'First Click', description: 'Click the cookie for the first time.', condition: state => state.totalClicks > 0 },
@@ -36,21 +56,6 @@ export const EVENTS = [
   { id: 'frenzyCookies', name: 'Cookie Frenzy', description: 'All buildings produce 3x cookies for 20 seconds!', duration: 20000, effect: { buildingMultiplier: 3 } },
   { id: 'clickFrenzy', name: 'Click Frenzy', description: 'Each click produces 7x cookies for 15 seconds!', duration: 15000, effect: { cookiesPerClickMultiplier: 7 } }
 ];
-
-export let gameState = {
-  cookies: 0,
-  cookiesPerClick: 1,
-  cookiesPerSecond: 0,
-  autoClickSpeed: 0,
-  upgrades: {},
-  buildings: {},
-  achievements: [],
-  totalClicks: 0,
-  autoClickAccumulator: 0,
-  buildingMultiplier: 1,
-  playerName: "",
-  playerId: ""
-};
 
 let autoClickerInterval = null;
 
