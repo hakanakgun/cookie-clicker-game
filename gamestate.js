@@ -237,12 +237,6 @@ function animateBuildingUpdate(buildingId) {
   }
 }
 
-function calculateBuildingCost(buildingId) {
-  const building = BUILDINGS.find(b => b.id === buildingId);
-  const count = gameState.buildings[buildingId].count;
-  return Math.floor(building.baseCost * Math.pow(1.15, count));
-}
-
 function calculateBuildingProduction(buildingId) {
   const building = BUILDINGS.find(b => b.id === buildingId);
   let multiplier = gameState.buildingMultiplier || 1;
