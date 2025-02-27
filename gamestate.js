@@ -23,6 +23,7 @@ export let gameState = {
   buildings: {},
   achievements: [],
   totalClicks: 0,
+  totalCookies: 0, 
   autoClickAccumulator: 0,
   buildingMultiplier: 1,
   playerName: "",
@@ -57,10 +58,10 @@ export function calculateBuildingCost(buildingId) {
 
 export const ACHIEVEMENTS = [
   { id: 'firstClick', name: 'First Click', description: 'Click the cookie for the first time.', condition: state => state.totalClicks > 0 },
-  { id: 'tenCookies', name: 'Cookie Beginner', description: 'Bake 10 cookies in total.', condition: state => state.cookies >= 10 },
-  { id: 'hundredCookies', name: 'Cookie Apprentice', description: 'Bake 100 cookies in total.', condition: state => state.cookies >= 100 },
-  { id: 'thousandCookies', name: 'Cookie Master', description: 'Bake 1,000 cookies in total.', condition: state => state.cookies >= 1000 },
-  { id: 'millionCookies', name: 'Cookie Millionaire', description: 'Bake 1,000,000 cookies in total.', condition: state => state.cookies >= 1000000 },
+  { id: 'tenCookies', name: 'Cookie Beginner', description: 'Bake 10 cookies in total.', condition: state => state.totalCookies >= 10 },
+  { id: 'hundredCookies', name: 'Cookie Apprentice', description: 'Bake 100 cookies in total.', condition: state => state.totalCookies >= 100 },
+  { id: 'thousandCookies', name: 'Cookie Master', description: 'Bake 1,000 cookies in total.', condition: state => state.totalCookies >= 1000 },
+  { id: 'millionCookies', name: 'Cookie Millionaire', description: 'Bake 1,000,000 cookies in total.', condition: state => state.totalCookies >= 1000000 },
   { id: 'firstGrandma', name: 'Grandma\'s Helper', description: 'Hire your first grandma.', condition: state => state.buildings.grandma && state.buildings.grandma.count > 0 },
   { id: 'tenGrandmas', name: 'Grandma\'s Army', description: 'Hire 10 grandmas.', condition: state => state.buildings.grandma && state.buildings.grandma.count >= 10 },
   { id: 'firstFarm', name: 'Farmer', description: 'Build your first farm.', condition: state => state.buildings.farm && state.buildings.farm.count > 0 }
@@ -118,6 +119,7 @@ export function clickCookie() {
     });
   }
   gameState.cookies += clickValue;
+  gameState.totalCookies += clickValue; // Track cumulative cookies
   gameState.totalClicks++;
   updateUICounters();
   createClickAnimation(clickValue);
@@ -275,6 +277,7 @@ export function calculateCookiesPerSecond() {
 
 function updateCookiesPerSecond() {
   gameState.cookies += gameState.cookiesPerSecond;
+  gameState.totalCookies += gameState.cookiesPerSecond; // Update cumulative cookies here too
   updateUICounters();
 }
 
