@@ -610,58 +610,6 @@
             });
         }
 
-        // Purchase an upgrade
-        // In your existing purchaseUpgrade function:
-        function purchaseUpgrade(upgradeId) {
-            const upgrade = UPGRADES.find(u => u.id === upgradeId);
-
-            if (gameState.cookies >= upgrade.cost && !gameState.upgrades[upgradeId].purchased) {
-                // Deduct cookies
-                gameState.cookies -= upgrade.cost;
-                
-                // Apply upgrade effects
-                if (upgrade.effect.cookiesPerClick) {
-                    gameState.cookiesPerClick += upgrade.effect.cookiesPerClick;
-                }
-                
-                if (upgrade.effect.autoClick) {
-                    // Increase autoClickSpeed
-                    if (!gameState.autoClickSpeed || gameState.autoClickSpeed < upgrade.effect.autoClick) {
-                        gameState.autoClickSpeed = upgrade.effect.autoClick;
-                        
-                        // Start auto-clicker if not already running
-                        if (!window.autoClickerInterval) {
-                            window.autoClickerInterval = setInterval(() => {
-                                gameState.cookies += gameState.cookiesPerClick;
-                                updateCookieCounter();
-                            }, 1000 / gameState.autoClickSpeed);
-                        }
-                    }
-                    
-                    // Show the pointer cursor animation
-                    showAutoClickerCursor();
-                }
-                
-                if (upgrade.effect.buildingMultiplier) {
-                    gameState.buildingMultiplier = (gameState.buildingMultiplier || 1) * upgrade.effect.buildingMultiplier;
-                }
-                
-                // Mark as purchased
-                gameState.upgrades[upgradeId].purchased = true;
-                
-                // Update display
-                updateCookieCounter();
-                initializeUpgrades();
-                initializeBuildings();
-                
-                // Show notification
-                showNotification(`Upgrade purchased: ${upgrade.name}`);
-                
-                // Save game
-                saveGame();
-            }
-        }
-
         // Helper function to show the pointer
         function showAutoClickerCursor() {
             const pointerElem = document.getElementById('autoClickerCursor');
@@ -735,6 +683,8 @@
             }, 200);
         }
 
+        // Purchase an upgrade
+        // In your existing purchaseUpgrade function:
         function purchaseUpgrade(upgradeId) {
             const upgrade = UPGRADES.find(u => u.id === upgradeId);
             
