@@ -101,7 +101,7 @@
         .grandma-animation {
             width: 50px;
             height: 50px;
-            background-image: url('path-to-grandma-image.png'); /* Replace with your grandma image URL */
+            background-image: url('grandma.png'); /* Replace with your grandma image URL */
             background-size: cover;
             position: absolute;
             pointer-events: none;
@@ -116,7 +116,7 @@
 
         /* Farm Animation */
         .farm-active {
-            background-image: url('path-to-farm-background.png'); /* Replace with your farm background image URL */
+            background-image: url('farm-background.png'); /* Replace with your farm background image URL */
             background-size: cover;
             transition: background 1.5s ease;
         }
@@ -322,6 +322,12 @@
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
+
+        @keyframes fadeUp {
+                    0% { opacity: 1; transform: translateY(0); }
+                    100% { opacity: 0; transform: translateY(-50px); }
+        }
+
     </style>
 </head>
 <body>
@@ -403,12 +409,15 @@
             cookies: 0,
             cookiesPerClick: 1,
             cookiesPerSecond: 0,
+            autoClickSpeed: 0,
             upgrades: {},
             buildings: {},
             achievements: [],
             lastSaved: Date.now(),
             playerName: "",
-            playerId: ""
+            playerId: "",
+            totalClicks: 0,
+            autoClickAccumulator: 0
         };
 
         // Game elements
@@ -474,7 +483,7 @@
             saveButton.addEventListener('click', saveGame);
             loginButton.addEventListener('click', login);
             
-            // Set up periodic tasks
+            // Still called every 1000ms (1 second)
             setInterval(updateCookiesPerSecond, 1000);
             setInterval(saveGame, 60000); // Auto-save every minute
             setInterval(checkAchievements, 5000);
@@ -489,7 +498,7 @@
             listenForMultiplayerEvents();
         }
 
-        // Log in and start game
+        // Log in and start game (updated for asynchronous load timing)
         function login() {
             const name = playerNameInput.value.trim();
             if (!name) {
@@ -501,85 +510,82 @@
             gameState.playerId = Date.now().toString(36) + Math.random().toString(36).substr(2);
             playerNameElement.textContent = name;
             
-            // Try to load saved game
-            loadGame();
-            
-            // Show game screen
-            loginScreen.style.display = 'none';
-            gameScreen.style.display = 'block';
-            
-            // Save initial state
-            saveGame();
-            
-            // Show welcome message
-            showNotification(`Welcome, ${name}! Start clicking to earn cookies!`);
+            // Load saved game and then show the game screen once loading is complete
+            loadGame().then(() => {
+                loginScreen.style.display = 'none';
+                gameScreen.style.display = 'block';
+                // Save initial state and welcome the player
+                saveGame();
+                showNotification(`Welcome, ${name}! Start clicking to earn cookies!`);
+            }).catch((error) => {
+                console.error("Error during game load:", error);
+                // Even if load fails, proceed to game screen
+                loginScreen.style.display = 'none';
+                gameScreen.style.display = 'block';
+                saveGame();
+                showNotification(`Welcome, ${name}! Start clicking to earn cookies!`);
+            });
         }
 
         // Click the cookie
         function clickCookie() {
-            // Apply click effects
             let clickValue = gameState.cookiesPerClick;
-            
-            // Apply event effects
             activeEvents.forEach(event => {
                 if (event.effect.cookiesPerClickMultiplier) {
                     clickValue *= event.effect.cookiesPerClickMultiplier;
                 }
             });
-            
             gameState.cookies += clickValue;
-            totalClicks++;
-            
-            // Update display
+            console.log("Cookies after click:", gameState.cookies);
+
+            // Increment click count in gameState
+            gameState.totalClicks++; 
+
             updateCookieCounter();
-            
-            // Create click animation
             createClickAnimation(clickValue);
-            
-            // Check for achievements
             checkAchievements();
         }
 
         // Initialize upgrades
         function initializeUpgrades() {
+            // Clear the container first to refresh the display
             upgradesContainer.innerHTML = '';
-            
+
             UPGRADES.forEach(upgrade => {
                 // Initialize upgrade in game state if not exists
                 if (!gameState.upgrades[upgrade.id]) {
                     gameState.upgrades[upgrade.id] = { purchased: false };
                 }
                 
-                // Check if requirement is met
+                // Check prerequisite
                 let requirementMet = true;
                 if (upgrade.requires) {
                     requirementMet = gameState.upgrades[upgrade.requires] && gameState.upgrades[upgrade.requires].purchased;
                 }
                 
-                // Only show if requirement is met and not purchased
+                // Only create the upgrade element if the requirement is met and it hasn't been purchased
                 if (requirementMet && !gameState.upgrades[upgrade.id].purchased) {
                     const upgradeElement = document.createElement('div');
                     upgradeElement.className = 'upgrade-item';
+                    upgradeElement.id = `upgrade-container-${upgrade.id}`;
                     upgradeElement.innerHTML = `
                         <div class="upgrade-info">
                             <div class="upgrade-name">${upgrade.name}</div>
                             <div class="upgrade-desc">${upgrade.description}</div>
                             <div class="upgrade-cost">${formatNumber(upgrade.cost)} cookies</div>
                         </div>
-                        <button class="upgrade-button" id="upgrade-${upgrade.id}" ${gameState.cookies < upgrade.cost ? 'disabled' : ''}>Buy</button>
+                        <button class="upgrade-button" id="upgrade-${upgrade.id}">Buy</button>
                     `;
                     upgradesContainer.appendChild(upgradeElement);
-                    
-                    // Add event listener
                     document.getElementById(`upgrade-${upgrade.id}`).addEventListener('click', () => purchaseUpgrade(upgrade.id));
                 }
             });
             
-            // Update display if no upgrades available
-            if (upgradesContainer.children.length === 0) {
-                upgradesContainer.innerHTML = '<p>No upgrades available at the moment.</p>';
-            }
+            // After (re)creating upgrade elements, immediately update their button states
+            updateButtons();
         }
+
+
 
         // Initialize buildings
         function initializeBuildings() {
@@ -615,117 +621,133 @@
         // Helper function to show the pointer
         function showAutoClickerCursor() {
             const pointerElem = document.getElementById('autoClickerCursor');
-            if (pointerElem) {
-                // Make sure it's displayed
+            if (pointerElem.style.display === 'none') {
                 pointerElem.style.display = 'block';
+                updatePointerPosition(); // Begin the continuous orbit
             }
         }
 
         // Global variables for pointer animation
         let pointerAngle = 0;          // Current angle in radians
-        const rotationSpeed = 0.01;    // Speed of pointer orbit (radians/frame)
-        const pointerRadius = 120;     // Distance from cookie center to pointer
+        const rotationSpeed = 0.01;    // Radians per frame (adjust for faster/slower rotation)
+        const pointerRadius = 130;     // Distance from the cookie center (adjust as needed)
+        let currentPokeOffset = 0;     // Additional inward offset for poking (0 normally)
 
+        // Declare a global flag at the top of your script:
+        let isPointerAnimating = false;
+
+        // Updated updatePointerPosition function remains unchanged:
         function updatePointerPosition() {
           const pointer = document.getElementById('autoClickerCursor');
-          const pastry = document.getElementById('pastry');
-          const container = document.getElementById('cookieContainer');
-
-          // 1. Get bounding rectangles
-          const pastryRect = pastry.getBoundingClientRect();
-          const containerRect = container.getBoundingClientRect();
-
-          // 2. Compute the cookie's center in the container's coordinate space
-          const cookieCenterX = (pastryRect.left - containerRect.left) + pastryRect.width / 2;
-          const cookieCenterY = (pastryRect.top - containerRect.top) + pastryRect.height / 2;
-
-          // 3. Compute pointer’s orbit position
-          //    pointerAngle is incremented each frame for continuous rotation
-          const pointerX = cookieCenterX + pointerRadius * Math.cos(pointerAngle);
-          const pointerY = cookieCenterY + pointerRadius * Math.sin(pointerAngle);
-
-          // 4. Update pointer position
-          pointer.style.left = `${pointerX - pointer.offsetWidth / 2}px`;
-          pointer.style.top = `${pointerY - pointer.offsetHeight / 2}px`;
-
-          // 5. Rotate the pointer so its top faces the cookie
-          //    Convert pointerAngle to degrees, then add 90 so top edge points inward
-          const angleDeg = (pointerAngle * 180) / Math.PI + 90;
+          const pastry = document.querySelector('.pastry');
+          
+          // Get the cookie's width (assuming it's a square)
+          const pastryWidth = pastry.offsetWidth;
+          
+          // Calculate the cookie's center in local coordinates
+          const centerX = pastryWidth / 2;
+          const centerY = pastryWidth / 2;  
+          
+          // Base radius: half the cookie's width plus some padding (20px)
+          const baseRadius = pastryWidth / 2 + 20;
+          
+          // Effective radius adjusted by the current poke offset
+          const effectiveRadius = baseRadius - currentPokeOffset;
+          
+          // Calculate pointer's orbit coordinates
+          const pointerX = centerX + effectiveRadius * Math.cos(pointerAngle);
+          const pointerY = centerY + effectiveRadius * Math.sin(pointerAngle);
+          
+          // Position pointer so its center is at (pointerX, pointerY)
+          pointer.style.left = (pointerX - pointer.offsetWidth / 2) + 'px';
+          pointer.style.top = (pointerY - pointer.offsetHeight / 2) + 'px';
+          
+          // Rotate pointer so its top always faces the cookie center
+          const angleDeg = (pointerAngle * 180) / Math.PI + 270;
           pointer.style.transform = `rotate(${angleDeg}deg)`;
-
-          // 6. Increment the angle for next frame (clockwise)
+          
+          // Increment angle for continuous rotation
           pointerAngle += rotationSpeed;
-
+          
           requestAnimationFrame(updatePointerPosition);
         }
 
-
-
+        // Poke animation: temporarily move the pointer inward so it "touches" the cookie
         function pokeCookie() {
-          const pointer = document.getElementById('autoClickerCursor');
-          const pastry = document.getElementById('pastry');
-          const container = document.getElementById('cookieContainer');
-
-          const pastryRect = pastry.getBoundingClientRect();
-          const containerRect = container.getBoundingClientRect();
-
-          // Cookie center in container space
-          const cookieCenterX = (pastryRect.left - containerRect.left) + pastryRect.width / 2;
-          const cookieCenterY = (pastryRect.top - containerRect.top) + pastryRect.height / 2;
-
-          // Move pointer inward by some offset
-          const pokeOffset = 20;
-          const currentAngle = pointerAngle;
-
-          const pokeX = cookieCenterX + (pointerRadius - pokeOffset) * Math.cos(currentAngle);
-          const pokeY = cookieCenterY + (pointerRadius - pokeOffset) * Math.sin(currentAngle);
-
-          pointer.style.transition = "all 0.2s ease";
-          pointer.style.left = `${pokeX - pointer.offsetWidth / 2}px`;
-          pointer.style.top = `${pokeY - pointer.offsetHeight / 2}px`;
-
-          // After 200ms, move back to normal orbit
+          // Set the poke offset (in pixels) to temporarily bring the pointer closer to the cookie
+          currentPokeOffset = 20;
+          
+          // After 200ms, reset the poke offset so that the pointer returns to its normal orbit
           setTimeout(() => {
-            // Recompute normal orbit position
-            const normalX = cookieCenterX + pointerRadius * Math.cos(currentAngle);
-            const normalY = cookieCenterY + pointerRadius * Math.sin(currentAngle);
-            pointer.style.left = `${normalX - pointer.offsetWidth / 2}px`;
-            pointer.style.top = `${normalY - pointer.offsetHeight / 2}px`;
-
-            // Reset transition
-            setTimeout(() => {
-              pointer.style.transition = "";
-            }, 200);
+            currentPokeOffset = 0;
           }, 200);
         }
-
 
 
         // Purchase an upgrade
         // In your existing purchaseUpgrade function:
         function purchaseUpgrade(upgradeId) {
+            console.log("Attempting to purchase upgrade:", upgradeId);
             const upgrade = UPGRADES.find(u => u.id === upgradeId);
             
             if (gameState.cookies >= upgrade.cost && !gameState.upgrades[upgradeId].purchased) {
+                // Deduct cookies
                 gameState.cookies -= upgrade.cost;
                 
+                // Handle cookies per click upgrade effects
+                if (upgrade.effect.cookiesPerClick) {
+                    gameState.cookiesPerClick += upgrade.effect.cookiesPerClick;
+                    console.log("New cookies per click:", gameState.cookiesPerClick);
+                }
+                
+                // Handle auto-click upgrade effects
                 if (upgrade.effect.autoClick) {
-                    gameState.autoClickSpeed = upgrade.effect.autoClick;
-
+                    // Accumulate auto click speed so that multiple upgrades add together
+                    gameState.autoClickSpeed = (gameState.autoClickSpeed || 0) + upgrade.effect.autoClick;
+                    
+                    // Start auto-click interval if not already running
                     if (!window.autoClickerInterval) {
+                        // Use a 200ms interval to align with the bounce animation timing
                         window.autoClickerInterval = setInterval(() => {
-                            gameState.cookies += gameState.cookiesPerClick;
+                            // Calculate auto clicks for this 200ms interval
+                            const autoClicks = gameState.autoClickSpeed * 0.2; 
+                            gameState.cookies += autoClicks * gameState.cookiesPerClick;
                             updateCookieCounter();
-                            pokeCookie(); // Poke each time an auto-click happens
-                        }, 1000 / gameState.autoClickSpeed);
+                            
+                            // Accumulate auto clicks and trigger bounce animations when a whole click is reached
+                            gameState.autoClickAccumulator += autoClicks;
+                            if (gameState.autoClickAccumulator >= 1) {
+                                const bounceCount = Math.floor(gameState.autoClickAccumulator);
+                                for (let i = 0; i < bounceCount; i++) {
+                                    pokeCookie();
+                                    createClickAnimation(gameState.cookiesPerClick);
+                                }
+                                gameState.autoClickAccumulator -= bounceCount;
+                            }
+                        }, 200); // Updated interval matching the bounce duration
                     }
-
-                    /// Show the pointer and start orbit
+                    
+                    // Show the auto-click pointer and start its orbit animation if not already running
                     document.getElementById('autoClickerCursor').style.display = 'block';
-                    updatePointerPosition();
+                    if (!isPointerAnimating) {
+                        isPointerAnimating = true;
+                        updatePointerPosition();
+                    }
                 }
 
+                
+                // Handle building multiplier upgrade effects
+                if (upgrade.effect.buildingMultiplier) {
+                    // Multiply the new multiplier with the existing value (default to 1).
+                    gameState.buildingMultiplier = (gameState.buildingMultiplier || 1) * upgrade.effect.buildingMultiplier;
+                    console.log("New building multiplier:", gameState.buildingMultiplier);
+                }
+
+                
+                // Mark the upgrade as purchased
                 gameState.upgrades[upgradeId].purchased = true;
+                
+                // Update displays and save the game
                 updateCookieCounter();
                 initializeUpgrades();
                 initializeBuildings();
@@ -827,10 +849,8 @@
 
         // Update cookies per second (called every second)
         function updateCookiesPerSecond() {
-            // Add cookies from CPS
-            gameState.cookies += gameState.cookiesPerSecond / 10; // Divide by 10 because we update 10 times per second for smoother counting
-            
-            // Update display
+            // Remove division since it's now updating once per second
+            gameState.cookies += gameState.cookiesPerSecond;
             updateCookieCounter();
         }
 
@@ -862,6 +882,7 @@
             });
         }
 
+
         // Format large numbers with commas
         function formatNumber(num) {
             if (num >= 1000000) {
@@ -885,55 +906,38 @@
             clickText.style.pointerEvents = 'none';
             clickText.style.animation = 'fadeUp 1s forwards';
             
-            // Add animation keyframes
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes fadeUp {
-                    0% { opacity: 1; transform: translateY(0); }
-                    100% { opacity: 0; transform: translateY(-50px); }
-                }
-            `;
-            document.head.appendChild(style);
-            
             cookieClicker.appendChild(clickText);
             
             // Remove after animation completes
             setTimeout(() => {
                 clickText.remove();
-                style.remove();
             }, 1000);
         }
+
 
         // Check achievements
         function checkAchievements() {
             let newAchievements = false;
-            
+
             ACHIEVEMENTS.forEach(achievement => {
-                // Skip if already unlocked
                 if (gameState.achievements && gameState.achievements.includes(achievement.id)) {
                     return;
                 }
-                
-                // Check condition
-                const stateWithClicks = {...gameState, clicks: totalClicks};
+
+                // Now use gameState.totalClicks consistently
+                const stateWithClicks = { ...gameState, clicks: gameState.totalClicks }; 
+
                 if (achievement.condition(stateWithClicks)) {
-                    // Unlock achievement
                     if (!gameState.achievements) {
                         gameState.achievements = [];
                     }
                     gameState.achievements.push(achievement.id);
-                    
-                    // Show achievement notification
                     showAchievement(achievement.name, achievement.description);
-                    
-                    // Save to Firebase
                     saveAchievement(achievement.id);
-                    
                     newAchievements = true;
                 }
             });
-            
-            // Save game if new achievements
+
             if (newAchievements) {
                 saveGame();
             }
@@ -966,95 +970,109 @@
             }, 3000);
         }
 
-        // Trigger random event
+        // Global object to store the timestamp of the last notification per event id
+let lastNotificationTimestamps = {};
+
+        // Improved triggerRandomEvent function with the same local handling
         function triggerRandomEvent() {
-            // 20% chance of triggering an event
             if (Math.random() < 0.2) {
                 const event = EVENTS[Math.floor(Math.random() * EVENTS.length)];
                 
-                // Show event notification
+                // Display event notification without wiping out existing notifications
                 const eventElement = document.createElement('div');
                 eventElement.className = 'event-notification';
                 eventElement.innerHTML = `
                     <strong>${event.name}</strong><br>
                     ${event.description}
                 `;
-                eventContainer.innerHTML = '';
+                // Append without clearing the container to allow multiple concurrent notifications
                 eventContainer.appendChild(eventElement);
                 
-                // Add to active events
-                const activeEvent = {...event, endTime: Date.now() + event.duration};
+                const activeEvent = { ...event, endTime: Date.now() + event.duration };
                 activeEvents.push(activeEvent);
                 
-                // Schedule event end
+                // End event after its duration with a callback to remove its notification
                 setTimeout(() => {
-                    // Remove from active events
                     activeEvents = activeEvents.filter(e => e.id !== event.id);
-                    
-                    // Remove notification if it's the same event
-                    if (eventContainer.firstChild && eventContainer.firstChild.querySelector('strong').textContent === event.name) {
-                        eventContainer.innerHTML = '';
+                    // Remove the specific event notification element
+                    if (eventContainer.contains(eventElement)) {
+                        eventContainer.removeChild(eventElement);
                     }
-                    
-                    // Update displays
                     calculateCookiesPerSecond();
                     updateCookieCounter();
-                    
-                    // Show notification
                     showNotification(`${event.name} has ended.`);
                 }, event.duration);
                 
-                // Update displays
                 calculateCookiesPerSecond();
                 updateCookieCounter();
-                
-                // Notify other players
                 broadcastEvent(event.id);
             }
         }
 
-        // Save game to Firebase
-        function saveGame() {
-            const saveData = {
-                ...gameState,
-                lastSaved: Date.now()
-            };
-            
-            // Save to Firebase
-            set(ref(database, `players/${gameState.playerId}`), saveData)
-                .then(() => {
-                    console.log("Game saved successfully");
-                })
-                .catch((error) => {
-                    console.error("Error saving game:", error);
-                    showNotification("Failed to save game. Please check your connection.");
-                });
+        // Helper function for retrying operations with exponential backoff
+        async function retryOperation(operation, retries = 3, delay = 1000) {
+            for (let attempt = 1; attempt <= retries; attempt++) {
+                try {
+                    return await operation();
+                } catch (error) {
+                    if (attempt === retries) {
+                        throw error;
+                    }
+                    console.warn(`Attempt ${attempt} failed. Retrying in ${delay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2; // Exponential backoff
+                }
+            }
         }
 
-        // Load game from Firebase
-        function loadGame() {
-            // Try to load from Firebase
-            get(ref(database, `players/${gameState.playerId}`))
-                .then((snapshot) => {
-                    if (snapshot.exists()) {
-                        const savedData = snapshot.val();
-                        gameState = savedData;
-                        
-                        // Update displays
-                        updateCookieCounter();
-                        initializeUpgrades();
-                        initializeBuildings();
-                        
-                        showNotification("Game loaded successfully!");
-                    } else {
-                        console.log("No saved game found, starting new game");
-                    }
-                })
-                .catch((error) => {
-                    console.error("Error loading game:", error);
-                    showNotification("Failed to load game. Starting new game.");
-                });
+        // Define a simple throttle to avoid saving too frequently.
+        let lastSaveTime = 0;
+        const SAVE_INTERVAL = 10000; // Minimum 5 seconds between saves
+
+        async function saveGame() {
+            const now = Date.now();
+            if (now - lastSaveTime < SAVE_INTERVAL) {
+                // Throttle save operations
+                return;
+            }
+            lastSaveTime = now;
+            
+            const saveData = {
+                 ...gameState,
+                 lastSaved: now
+            };
+            try {
+                await set(ref(database, `players/${gameState.playerId}`), saveData);
+                console.log("Game saved successfully");
+            } catch (error) {
+                console.error("Error saving game:", error);
+                // Optionally, schedule a retry or inform the user here.
+            }
         }
+
+
+        // Load game from Firebase (updated to return a promise)
+        async function loadGame() {
+            try {
+                const snapshot = await get(ref(database, `players/${gameState.playerId}`));
+                if (snapshot.exists()) {
+                    const savedData = snapshot.val();
+                    // Merge the saved data with the current game state to retain any new keys.
+                    gameState = { ...gameState, ...savedData };
+                    updateCookieCounter();
+                    initializeUpgrades();
+                    initializeBuildings();
+                    showNotification("Game loaded successfully!");
+                } else {
+                    console.log("No saved game found, starting new game");
+                }
+            } catch (error) {
+                console.error("Error loading game:", error);
+                showNotification("Failed to load game. Starting new game.");
+            }
+        }
+
+
 
         // Save achievement to Firebase
         function saveAchievement(achievementId) {
@@ -1115,23 +1133,27 @@
                 }
             });
             
-            // Listen for events
+            // Improved events listener with debounce to avoid duplicate notifications
             onValue(ref(database, 'events'), (snapshot) => {
                 if (snapshot.exists()) {
                     const events = snapshot.val();
+                    const currentTime = Date.now();
                     
-                    // Find recent events (last 10 seconds)
-                    const recentEvents = Object.values(events)
-                        .filter(e => e.playerId !== gameState.playerId && e.timestamp > Date.now() - 10000)
-                        .sort((a, b) => b.timestamp - a.timestamp);
-                    
-                    // Show notifications for recent events
-                    recentEvents.forEach(event => {
-                        const eventInfo = EVENTS.find(e => e.id === event.eventId);
-                        if (eventInfo) {
-                            showNotification(`${event.playerName} just triggered: ${eventInfo.name}!`);
-                        }
-                    });
+                    Object.values(events)
+                        .filter(e => e.playerId !== gameState.playerId && currentTime - e.timestamp < 10000)
+                        .sort((a, b) => b.timestamp - a.timestamp)
+                        .forEach(event => {
+                            // Check if we already showed a notification for this event id recently (within 5 seconds)
+                            if (!lastNotificationTimestamps[event.eventId] || 
+                                currentTime - lastNotificationTimestamps[event.eventId] > 5000) {
+                                
+                                const eventInfo = EVENTS.find(e => e.id === event.eventId);
+                                if (eventInfo) {
+                                    showNotification(`${event.playerName} just triggered: ${eventInfo.name}!`);
+                                    lastNotificationTimestamps[event.eventId] = currentTime;
+                                }
+                            }
+                        });
                 }
             });
         }

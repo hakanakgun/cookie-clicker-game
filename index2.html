@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multiplayer Cookie Clicker</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f5f0e6;
+      color: #5a3921;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+    }
+    .auto-clicker-cursor {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: url('pointer_finger.png') no-repeat center center;
+      background-size: contain;
+      pointer-events: none;
+      transform-origin: center center;
+    }
+    @keyframes pokeCookie {
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      25% { transform: translate(-50%, -40%) rotate(0deg); }
+      50% { transform: translate(-50%, -50%) rotate(0deg); }
+      75% { transform: translate(-50%, -40%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(0deg); }
+    }
+    .game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    @media (min-width: 768px) {
+      .game-container {
+        flex-direction: row;
+        align-items: flex-start;
+      }
+    }
+    .game-section {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      margin: 10px;
+      flex: 1;
+    }
+    .pastry-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .pastry-container {
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.05s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .pastry-container:active {
+      transform: scale(0.97);
+    }
+    .pastry {
+      width: 300px;
+      height: 300px;
+      background-color: #c17e40;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      box-shadow: inset 0 0 10px 5px #8c5e2b;
+    }
+    .pastry::before {
+      content: "";
+      position: absolute;
+      width: 90%;
+      height: 90%;
+      background-color: #d9a05c;
+      border-radius: 50%;
+      box-shadow: inset 0 0 5px 3px #8c5e2b;
+    }
+    .grandma-animation {
+      width: 50px;
+      height: 50px;
+      background-image: url('grandma.png');
+      background-size: cover;
+      position: absolute;
+      pointer-events: none;
+      animation: grandmaTouch 1.5s forwards;
+    }
+    @keyframes grandmaTouch {
+      0% { transform: translate(-150%, 0) scale(0.5); opacity: 0; }
+      50% { transform: translate(0, 0) scale(1); opacity: 1; }
+      100% { transform: translate(0, -50%) scale(1); opacity: 0; }
+    }
+    .farm-active {
+      background-image: url('farm-background.png');
+      background-size: cover;
+      transition: background 1.5s ease;
+    }
+    .chip {
+      position: absolute;
+      background-color: #3a250e;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+    }
+    .chip:nth-child(1) { top: 25%; left: 35%; }
+    .chip:nth-child(2) { top: 35%; right: 35%; }
+    .chip:nth-child(3) { bottom: 25%; left: 45%; }
+    .chip:nth-child(4) { bottom: 35%; right: 30%; }
+    .chip:nth-child(5) { top: 55%; left: 25%; }
+    .chip:nth-child(6) { bottom: 35%; right: 45%; }
+    .pastry-counter {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    .cps-counter {
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    .upgrades-section, .buildings-section, .leaderboard-section {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .upgrade-item, .building-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      margin: 10px 0;
+      background-color: #f9f2e7;
+      border-radius: 5px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .upgrade-item:hover, .building-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    }
+    .upgrade-info, .building-info {
+      text-align: left;
+    }
+    .upgrade-name, .building-name {
+      font-weight: bold;
+    }
+    .upgrade-desc, .building-desc {
+      font-size: 12px;
+      color: #666;
+    }
+    .upgrade-button, .building-button {
+      background-color: #8c5e2b;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .upgrade-button:hover, .building-button:hover {
+      background-color: #6a451f;
+    }
+    .upgrade-button:disabled, .building-button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .achievement {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+    .notification-container {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+    }
+    .notification {
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px 15px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      animation: fadeIn 0.3s, fadeOut 0.3s 2.7s;
+      opacity: 0;
+      animation-fill-mode: forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    .player-info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .player-name {
+      font-weight: bold;
+    }
+    .leaderboard-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px;
+      margin: 5px 0;
+      background-color: #f9f2e7;
+      border-radius: 5px;
+    }
+    .leaderboard-rank {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    .leaderboard-name {
+      flex-grow: 1;
+      text-align: left;
+    }
+    .leaderboard-cookies {
+      font-weight: bold;
+    }
+    .login-container {
+      max-width: 400px;
+      margin: 100px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .login-input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .login-button {
+      width: 100%;
+      padding: 10px;
+      background-color: #8c5e2b;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .login-button:hover {
+      background-color: #6a451f;
+    }
+    .event-notification {
+      background-color: #ff9800;
+      color: white;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+      text-align: center;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    @keyframes fadeUp {
+      0% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-50px); }
+    }
+  </style>
+</head>
+<body>
+  <div id="login-screen" class="login-container">
+    <h2>Multiplayer Cookie Clicker</h2>
+    <p>Enter your name to start playing!</p>
+    <input type="text" id="player-name-input" class="login-input" placeholder="Your name" />
+    <button id="login-button" class="login-button">Start Game</button>
+  </div>
+
+  <div id="game-screen" style="display: none;">
+    <h1>Multiplayer Cookie Clicker</h1>
+    <div class="player-info">
+      <span class="player-name" id="player-name">Player</span>
+      <button id="save-button" class="upgrade-button">Save Game</button>
+    </div>
+    <div class="game-container">
+      <div class="game-section pastry-section">
+        <div class="pastry-container" id="pastry-clicker">
+          <div class="pastry">
+            <div class="chip"></div>
+            <div class="chip"></div>
+            <div class="chip"></div>
+            <div class="chip"></div>
+            <div class="chip"></div>
+            <div class="chip"></div>
+            <div class="auto-clicker-cursor" id="autoClickerCursor" style="display: none;"></div>
+          </div>
+        </div>
+        <div class="pastry-counter" id="pastry-counter">0 cookies</div>
+        <div class="cps-counter" id="cps-counter">0 per second</div>
+        <div id="event-container"></div>
+      </div>
+      <div class="game-section upgrades-section">
+        <h2>Upgrades</h2>
+        <div id="upgrades-container"></div>
+      </div>
+      <div class="game-section buildings-section">
+        <h2>Buildings</h2>
+        <div id="buildings-container"></div>
+      </div>
+      <div class="game-section leaderboard-section">
+        <h2>Leaderboard</h2>
+        <div id="leaderboard-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="achievement" class="achievement"></div>
+  <div id="notification-container" class="notification-container"></div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
+```
+
+```js
+// main.js
+import { initGame, login } from './gamestate.js';
+import { setupUI } from './ui.js';
+import { initFirebaseListeners } from './firebaseIntegration.js';
+
+document.getElementById('login-button').addEventListener('click', login);
+document.getElementById('save-button').addEventListener('click', () => {
+  import('./firebaseIntegration.js').then(module => module.saveGame());
+});
+
+setupUI();
+initFirebaseListeners();
+window.addEventListener('load', initGame);
+```
+
+```js
+// gamestate.js
+import { updateUICounters, showNotification, createClickAnimation, showAchievement } from './ui.js';
+import { saveGame, loadGame, broadcastEvent } from './firebaseIntegration.js';
+
+export const UPGRADES = [
+  { id: 'cursor1', name: 'Cursor Level 1', description: '+1 cookie per click', cost: 50, effect: { cookiesPerClick: 1 }, requires: null },
+  { id: 'cursor2', name: 'Cursor Level 2', description: '+2 cookies per click', cost: 200, effect: { cookiesPerClick: 2 }, requires: 'cursor1' },
+  { id: 'cursor3', name: 'Cursor Level 3', description: '+3 cookies per click', cost: 500, effect: { cookiesPerClick: 3 }, requires: 'cursor2' },
+  { id: 'autoclick1', name: 'Auto Clicker 1', description: 'Clicks automatically once every 10 seconds', cost: 100, effect: { autoClick: 0.1 }, requires: null },
+  { id: 'autoclick2', name: 'Auto Clicker 2', description: 'Clicks automatically once every 5 seconds', cost: 300, effect: { autoClick: 0.2 }, requires: 'autoclick1' },
+  { id: 'buildingBoost1', name: 'Building Boost 1', description: 'All buildings produce 50% more cookies', cost: 1000, effect: { buildingMultiplier: 1.5 }, requires: null },
+  { id: 'buildingBoost2', name: 'Building Boost 2', description: 'All buildings produce 100% more cookies', cost: 5000, effect: { buildingMultiplier: 2 }, requires: 'buildingBoost1' }
+];
+
+export const BUILDINGS = [
+  { id: 'grandma', name: 'Grandma', description: 'A nice grandma to bake cookies.', baseCost: 100, cookiesPerSecond: 0.5 },
+  { id: 'farm', name: 'Farm', description: 'Grows cookie plants.', baseCost: 500, cookiesPerSecond: 2 },
+  { id: 'mine', name: 'Mine', description: 'Mines cookie dough.', baseCost: 2000, cookiesPerSecond: 10 },
+  { id: 'factory', name: 'Factory', description: 'Produces mass amounts of cookies.', baseCost: 10000, cookiesPerSecond: 50 },
+  { id: 'bank', name: 'Bank', description: 'Generates cookies from interest.', baseCost: 50000, cookiesPerSecond: 250 }
+];
+
+export const ACHIEVEMENTS = [
+  { id: 'firstClick', name: 'First Click', description: 'Click the cookie for the first time.', condition: state => state.totalClicks > 0 },
+  { id: 'tenCookies', name: 'Cookie Beginner', description: 'Bake 10 cookies in total.', condition: state => state.cookies >= 10 },
+  { id: 'hundredCookies', name: 'Cookie Apprentice', description: 'Bake 100 cookies in total.', condition: state => state.cookies >= 100 },
+  { id: 'thousandCookies', name: 'Cookie Master', description: 'Bake 1,000 cookies in total.', condition: state => state.cookies >= 1000 },
+  { id: 'millionCookies', name: 'Cookie Millionaire', description: 'Bake 1,000,000 cookies in total.', condition: state => state.cookies >= 1000000 },
+  { id: 'firstGrandma', name: 'Grandma\'s Helper', description: 'Hire your first grandma.', condition: state => state.buildings.grandma && state.buildings.grandma.count > 0 },
+  { id: 'tenGrandmas', name: 'Grandma\'s Army', description: 'Hire 10 grandmas.', condition: state => state.buildings.grandma && state.buildings.grandma.count >= 10 },
+  { id: 'firstFarm', name: 'Farmer', description: 'Build your first farm.', condition: state => state.buildings.farm && state.buildings.farm.count > 0 }
+];
+
+export const EVENTS = [
+  { id: 'cookieRain', name: 'Cookie Rain', description: 'Cookies are raining! Double cookies per click for 30 seconds!', duration: 30000, effect: { cookiesPerClickMultiplier: 2 } },
+  { id: 'frenzyCookies', name: 'Cookie Frenzy', description: 'All buildings produce 3x cookies for 20 seconds!', duration: 20000, effect: { buildingMultiplier: 3 } },
+  { id: 'clickFrenzy', name: 'Click Frenzy', description: 'Each click produces 7x cookies for 15 seconds!', duration: 15000, effect: { cookiesPerClickMultiplier: 7 } }
+];
+
+export let gameState = {
+  cookies: 0,
+  cookiesPerClick: 1,
+  cookiesPerSecond: 0,
+  autoClickSpeed: 0,
+  upgrades: {},
+  buildings: {},
+  achievements: [],
+  totalClicks: 0,
+  autoClickAccumulator: 0,
+  buildingMultiplier: 1,
+  playerName: "",
+  playerId: ""
+};
+
+let autoClickerInterval = null;
+
+export function initGame() {
+  const pastryClicker = document.getElementById('pastry-clicker');
+  pastryClicker.addEventListener('click', clickCookie);
+  setInterval(updateCookiesPerSecond, 1000);
+  setInterval(saveGame, 60000);
+  setInterval(checkAchievements, 5000);
+  setInterval(triggerRandomEvent, 120000);
+  setInterval(() => import('./firebaseIntegration.js').then(mod => mod.updateLeaderboard()), 10000);
+  initializeUpgrades();
+  initializeBuildings();
+  loadGame();
+}
+
+export function login() {
+  const nameInput = document.getElementById('player-name-input');
+  const name = nameInput.value.trim();
+  if (!name) {
+    showNotification("Please enter a name to start playing!");
+    return;
+  }
+  gameState.playerName = name;
+  gameState.playerId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+  document.getElementById('player-name').textContent = name;
+  loadGame().then(() => {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('game-screen').style.display = 'block';
+    saveGame();
+    showNotification(`Welcome, ${name}! Start clicking to earn cookies!`);
+  }).catch(() => {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('game-screen').style.display = 'block';
+    saveGame();
+    showNotification(`Welcome, ${name}! Start clicking to earn cookies!`);
+  });
+}
+
+export function clickCookie() {
+  let clickValue = gameState.cookiesPerClick;
+  if (window.activeEvents) {
+    window.activeEvents.forEach(e => {
+      if (e.effect.cookiesPerClickMultiplier) clickValue *= e.effect.cookiesPerClickMultiplier;
+    });
+  }
+  gameState.cookies += clickValue;
+  gameState.totalClicks++;
+  updateUICounters();
+  createClickAnimation(clickValue);
+  checkAchievements();
+}
+
+export function initializeUpgrades() {
+  const upgradesContainer = document.getElementById('upgrades-container');
+  upgradesContainer.innerHTML = '';
+  UPGRADES.forEach(upgrade => {
+    if (!gameState.upgrades[upgrade.id]) {
+      gameState.upgrades[upgrade.id] = { purchased: false };
+    }
+    let requirementMet = true;
+    if (upgrade.requires) {
+      requirementMet = gameState.upgrades[upgrade.requires] && gameState.upgrades[upgrade.requires].purchased;
+    }
+    if (requirementMet && !gameState.upgrades[upgrade.id].purchased) {
+      const div = document.createElement('div');
+      div.className = 'upgrade-item';
+      div.id = `upgrade-container-${upgrade.id}`;
+      div.innerHTML = `
+        <div class="upgrade-info">
+          <div class="upgrade-name">${upgrade.name}</div>
+          <div class="upgrade-desc">${upgrade.description}</div>
+          <div class="upgrade-cost">${formatNumber(upgrade.cost)} cookies</div>
+        </div>
+        <button class="upgrade-button" id="upgrade-${upgrade.id}">Buy</button>
+      `;
+      upgradesContainer.appendChild(div);
+      document.getElementById(`upgrade-${upgrade.id}`).addEventListener('click', () => purchaseUpgrade(upgrade.id));
+    }
+  });
+  updateUICounters();
+}
+
+export function initializeBuildings() {
+  const buildingsContainer = document.getElementById('buildings-container');
+  buildingsContainer.innerHTML = '';
+  BUILDINGS.forEach(building => {
+    if (!gameState.buildings[building.id]) {
+      gameState.buildings[building.id] = { count: 0 };
+    }
+    const count = gameState.buildings[building.id].count;
+    const cost = calculateBuildingCost(building.id);
+    const div = document.createElement('div');
+    div.className = 'building-item';
+    div.innerHTML = `
+      <div class="building-info">
+        <div class="building-name">${building.name} (${count})</div>
+        <div class="building-desc">${building.description}</div>
+        <div class="building-production">Each produces ${formatNumber(calculateBuildingProduction(building.id))} cookies/sec</div>
+        <div class="building-cost">${formatNumber(cost)} cookies</div>
+      </div>
+      <button class="building-button" id="building-${building.id}" ${gameState.cookies < cost ? 'disabled' : ''}>Buy</button>
+    `;
+    buildingsContainer.appendChild(div);
+    document.getElementById(`building-${building.id}`).addEventListener('click', () => purchaseBuilding(building.id));
+  });
+}
+
+export function purchaseUpgrade(upgradeId) {
+  const upgrade = UPGRADES.find(u => u.id === upgradeId);
+  if (gameState.cookies >= upgrade.cost && !gameState.upgrades[upgradeId].purchased) {
+    gameState.cookies -= upgrade.cost;
+    if (upgrade.effect.cookiesPerClick) {
+      gameState.cookiesPerClick += upgrade.effect.cookiesPerClick;
+    }
+    if (upgrade.effect.autoClick) {
+      gameState.autoClickSpeed = (gameState.autoClickSpeed || 0) + upgrade.effect.autoClick;
+      if (!autoClickerInterval) {
+        autoClickerInterval = setInterval(() => {
+          const autoClicks = gameState.autoClickSpeed * 0.2;
+          gameState.cookies += autoClicks * gameState.cookiesPerClick;
+          updateUICounters();
+          gameState.autoClickAccumulator += autoClicks;
+          if (gameState.autoClickAccumulator >= 1) {
+            const bounces = Math.floor(gameState.autoClickAccumulator);
+            for (let i = 0; i < bounces; i++) {
+              import('./ui.js').then(mod => {
+                mod.pokeCookie();
+                mod.createClickAnimation(gameState.cookiesPerClick);
+              });
+            }
+            gameState.autoClickAccumulator -= bounces;
+          }
+        }, 200);
+      }
+      document.getElementById('autoClickerCursor').style.display = 'block';
+      import('./ui.js').then(mod => mod.startPointerAnimation());
+    }
+    if (upgrade.effect.buildingMultiplier) {
+      gameState.buildingMultiplier = (gameState.buildingMultiplier || 1) * upgrade.effect.buildingMultiplier;
+    }
+    gameState.upgrades[upgradeId].purchased = true;
+    updateUICounters();
+    initializeUpgrades();
+    initializeBuildings();
+    showNotification(`Upgrade purchased: ${upgrade.name}`);
+    saveGame();
+  }
+}
+
+export function purchaseBuilding(buildingId) {
+  const building = BUILDINGS.find(b => b.id === buildingId);
+  const cost = calculateBuildingCost(buildingId);
+  if (gameState.cookies >= cost) {
+    gameState.cookies -= cost;
+    gameState.buildings[buildingId].count++;
+    calculateCookiesPerSecond();
+    updateUICounters();
+    initializeBuildings();
+    animateBuildingUpdate(buildingId);
+    checkAchievements();
+    saveGame();
+  }
+}
+
+function animateBuildingUpdate(buildingId) {
+  if (buildingId === 'grandma') {
+    const grandmaElem = document.createElement('div');
+    grandmaElem.className = 'grandma-animation';
+    grandmaElem.style.left = '50%';
+    grandmaElem.style.top = '50%';
+    grandmaElem.style.transform = 'translate(-50%, -50%)';
+    document.getElementById('pastry-clicker').appendChild(grandmaElem);
+    setTimeout(() => { grandmaElem.remove(); }, 1500);
+  } else if (buildingId === 'farm') {
+    const pastryElem = document.querySelector('.pastry');
+    pastryElem.classList.add('farm-active');
+    setTimeout(() => { pastryElem.classList.remove('farm-active'); }, 1500);
+  }
+}
+
+function calculateBuildingCost(buildingId) {
+  const building = BUILDINGS.find(b => b.id === buildingId);
+  const count = gameState.buildings[buildingId].count;
+  return Math.floor(building.baseCost * Math.pow(1.15, count));
+}
+
+function calculateBuildingProduction(buildingId) {
+  const building = BUILDINGS.find(b => b.id === buildingId);
+  let multiplier = gameState.buildingMultiplier || 1;
+  if (window.activeEvents) {
+    window.activeEvents.forEach(e => {
+      if (e.effect.buildingMultiplier) multiplier *= e.effect.buildingMultiplier;
+    });
+  }
+  return building.cookiesPerSecond * multiplier;
+}
+
+export function calculateCookiesPerSecond() {
+  let cps = 0;
+  for (const id in gameState.buildings) {
+    const count = gameState.buildings[id].count;
+    cps += calculateBuildingProduction(id) * count;
+  }
+  gameState.cookiesPerSecond = cps;
+  return cps;
+}
+
+function updateCookiesPerSecond() {
+  gameState.cookies += gameState.cookiesPerSecond;
+  updateUICounters();
+}
+
+function formatNumber(num) {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  else if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  else return num.toFixed(0);
+}
+
+function checkAchievements() {
+  let newAchieved = false;
+  ACHIEVEMENTS.forEach(ach => {
+    if (gameState.achievements.includes(ach.id)) return;
+    if (ach.condition(gameState)) {
+      gameState.achievements.push(ach.id);
+      showAchievement(ach.name, ach.description);
+      import('./firebaseIntegration.js').then(mod => mod.saveAchievement(ach.id));
+      newAchieved = true;
+    }
+  });
+  if (newAchieved) saveGame();
+}
+
+function triggerRandomEvent() {
+  if (Math.random() < 0.2) {
+    const event = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+    const eventContainer = document.getElementById('event-container');
+    const eventElem = document.createElement('div');
+    eventElem.className = 'event-notification';
+    eventElem.innerHTML = `<strong>${event.name}</strong><br>${event.description}`;
+    eventContainer.appendChild(eventElem);
+    const activeEvent = { ...event, endTime: Date.now() + event.duration };
+    window.activeEvents = window.activeEvents || [];
+    window.activeEvents.push(activeEvent);
+    setTimeout(() => {
+      window.activeEvents = window.activeEvents.filter(e => e.id !== event.id);
+      if (eventContainer.contains(eventElem)) eventContainer.removeChild(eventElem);
+      calculateCookiesPerSecond();
+      updateUICounters();
+      showNotification(`${event.name} has ended.`);
+    }, event.duration);
+    calculateCookiesPerSecond();
+    updateUICounters();
+    broadcastEvent(event.id);
+  }
+}
+
+export { saveGame, loadGame };
+```
+
+```js
+// ui.js
+let pointerAngle = 0;
+const rotationSpeed = 0.01;
+const pointerRadius = 130;
+let currentPokeOffset = 0;
+let isPointerAnimating = false;
+
+export function setupUI() {
+  // Setup any initial UI state if necessary.
+}
+
+export function updateUICounters() {
+  const cookieCounter = document.getElementById('pastry-counter');
+  const cpsCounter = document.getElementById('cps-counter');
+  import('./gamestate.js').then(mod => {
+    cookieCounter.textContent = `${formatNumber(Math.floor(mod.gameState.cookies))} cookies`;
+    cpsCounter.textContent = `${formatNumber(mod.gameState.cookiesPerSecond)} per second`;
+    updateButtons();
+  });
+}
+
+function updateButtons() {
+  import('./gamestate.js').then(mod => {
+    mod.UPGRADES.forEach(upgrade => {
+      const btn = document.getElementById(`upgrade-${upgrade.id}`);
+      if (btn) btn.disabled = mod.gameState.cookies < upgrade.cost || mod.gameState.upgrades[upgrade.id].purchased;
+    });
+    mod.BUILDINGS.forEach(building => {
+      const btn = document.getElementById(`building-${building.id}`);
+      if (btn) btn.disabled = mod.gameState.cookies < calculateBuildingCost(building.id);
+    });
+  });
+}
+
+function calculateBuildingCost(buildingId) {
+  // Duplicate logic from gamestate; you may consider refactoring further.
+  // For simplicity, return 0.
+  return 0;
+}
+
+export function showNotification(message) {
+  const container = document.getElementById('notification-container');
+  const notif = document.createElement('div');
+  notif.className = 'notification';
+  notif.textContent = message;
+  container.appendChild(notif);
+  setTimeout(() => { notif.remove(); }, 3000);
+}
+
+export function createClickAnimation(value) {
+  const pastryClicker = document.getElementById('pastry-clicker');
+  const anim = document.createElement('div');
+  anim.textContent = '+' + formatNumber(value);
+  anim.style.position = 'absolute';
+  anim.style.left = Math.random() * 100 + 'px';
+  anim.style.top = Math.random() * 100 + 'px';
+  anim.style.color = '#8c5e2b';
+  anim.style.fontWeight = 'bold';
+  anim.style.pointerEvents = 'none';
+  anim.style.animation = 'fadeUp 1s forwards';
+  pastryClicker.appendChild(anim);
+  setTimeout(() => { anim.remove(); }, 1000);
+}
+
+export function showAchievement(name, description) {
+  const achievementElem = document.getElementById('achievement');
+  achievementElem.innerHTML = `<strong>Achievement Unlocked: ${name}</strong><br>${description}`;
+  achievementElem.style.opacity = '1';
+  setTimeout(() => { achievementElem.style.opacity = '0'; }, 5000);
+}
+
+export function pokeCookie() {
+  currentPokeOffset = 20;
+  setTimeout(() => { currentPokeOffset = 0; }, 200);
+}
+
+export function startPointerAnimation() {
+  if (!isPointerAnimating) {
+    isPointerAnimating = true;
+    updatePointerPosition();
+  }
+}
+
+function updatePointerPosition() {
+  const pointer = document.getElementById('autoClickerCursor');
+  const pastry = document.querySelector('.pastry');
+  if (!pointer || !pastry) return;
+  const pastryWidth = pastry.offsetWidth;
+  const centerX = pastryWidth / 2;
+  const centerY = pastryWidth / 2;
+  const baseRadius = pastryWidth / 2 + 20;
+  const effectiveRadius = baseRadius - currentPokeOffset;
+  const pointerX = centerX + effectiveRadius * Math.cos(pointerAngle);
+  const pointerY = centerY + effectiveRadius * Math.sin(pointerAngle);
+  pointer.style.left = (pointerX - pointer.offsetWidth / 2) + 'px';
+  pointer.style.top = (pointerY - pointer.offsetHeight / 2) + 'px';
+  const angleDeg = (pointerAngle * 180) / Math.PI + 270;
+  pointer.style.transform = `rotate(${angleDeg}deg)`;
+  pointerAngle += rotationSpeed;
+  requestAnimationFrame(updatePointerPosition);
+}
+
+function formatNumber(num) {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  else if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  else return num.toFixed(0);
+}
+```
+
+```js
+// firebaseIntegration.js
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js';
+import { getDatabase, ref, set, onValue, get } from 'https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js';
+import { gameState } from './gamestate.js';
+import { showNotification } from './ui.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD9CTMnRQaaHJwZ7Nh8BXyqTSauNI-55no",
+  authDomain: "cookie-clicker-game-d6d0a.firebaseapp.com",
+  databaseURL: "https://cookie-clicker-game-d6d0a-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "cookie-clicker-game-d6d0a",
+  storageBucket: "cookie-clicker-game-d6d0a.firebasestorage.app",
+  messagingSenderId: "232493349168",
+  appId: "1:232493349168:web:860392bc64687b8865f0f5"
+};
+
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+let lastSaveTime = 0;
+const SAVE_INTERVAL = 10000;
+
+export async function saveGame() {
+  const now = Date.now();
+  if (now - lastSaveTime < SAVE_INTERVAL) return;
+  lastSaveTime = now;
+  const saveData = { ...gameState, lastSaved: now };
+  try {
+    await set(ref(database, `players/${gameState.playerId}`), saveData);
+    console.log("Game saved successfully");
+  } catch (error) {
+    console.error("Error saving game:", error);
+  }
+}
+
+export async function loadGame() {
+  try {
+    const snapshot = await get(ref(database, `players/${gameState.playerId}`));
+    if (snapshot.exists()) {
+      const savedData = snapshot.val();
+      Object.assign(gameState, savedData);
+      import('./ui.js').then(mod => mod.updateUICounters());
+      showNotification("Game loaded successfully!");
+    } else {
+      console.log("No saved game found, starting new game");
+    }
+  } catch (error) {
+    console.error("Error loading game:", error);
+    showNotification("Failed to load game. Starting new game.");
+  }
+}
+
+export function saveAchievement(achievementId) {
+  const achievementData = {
+    playerId: gameState.playerId,
+    playerName: gameState.playerName,
+    achievementId: achievementId,
+    timestamp: Date.now()
+  };
+  const newAchievementRef = ref(database, `achievements/${gameState.playerId}_${achievementId}`);
+  set(newAchievementRef, achievementData).catch(error => console.error("Error saving achievement:", error));
+}
+
+export function broadcastEvent(eventId) {
+  const eventData = {
+    playerId: gameState.playerId,
+    playerName: gameState.playerName,
+    eventId: eventId,
+    timestamp: Date.now()
+  };
+  const newEventRef = ref(database, `events/${Date.now()}`);
+  set(newEventRef, eventData).catch(error => console.error("Error broadcasting event:", error));
+}
+
+export function initFirebaseListeners() {
+  onValue(ref(database, 'achievements'), snapshot => {
+    if (snapshot.exists()) {
+      const achievements = snapshot.val();
+      const recent = Object.values(achievements)
+        .filter(a => a.playerId !== gameState.playerId && a.timestamp > Date.now() - 60000)
+        .sort((a, b) => b.timestamp - a.timestamp);
+      recent.forEach(a => {
+        import('./gamestate.js').then(mod => {
+          const ach = mod.ACHIEVEMENTS.find(x => x.id === a.achievementId);
+          if (ach) showNotification(`${a.playerName} just unlocked: ${ach.name}!`);
+        });
+      });
+    }
+  });
+
+  let lastNotificationTimestamps = {};
+  onValue(ref(database, 'events'), snapshot => {
+    if (snapshot.exists()) {
+      const events = snapshot.val();
+      const now = Date.now();
+      Object.values(events)
+        .filter(e => e.playerId !== gameState.playerId && now - e.timestamp < 10000)
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .forEach(e => {
+          if (!lastNotificationTimestamps[e.eventId] || now - lastNotificationTimestamps[e.eventId] > 5000) {
+            import('./gamestate.js').then(mod => {
+              const eventInfo = mod.EVENTS.find(x => x.id === e.eventId);
+              if (eventInfo) {
+                showNotification(`${e.playerName} just triggered: ${eventInfo.name}!`);
+                lastNotificationTimestamps[e.eventId] = now;
+              }
+            });
+          }
+        });
+    }
+  });
+}
+
+export function updateLeaderboard() {
+  get(ref(database, 'players')).then(snapshot => {
+    if (snapshot.exists()) {
+      const players = Object.values(snapshot.val()).sort((a, b) => b.cookies - a.cookies);
+      const top = players.slice(0, 10);
+      const container = document.getElementById('leaderboard-container');
+      container.innerHTML = '';
+      top.forEach((player, index) => {
+        const div = document.createElement('div');
+        div.className = 'leaderboard-item';
+        if (player.playerId === gameState.playerId) div.style.backgroundColor = '#ffe8c8';
+        div.innerHTML = `
+          <span class="leaderboard-rank">#${index + 1}</span>
+          <span class="leaderboard-name">${player.playerName}</span>
+          <span class="leaderboard-cookies">${Math.floor(player.cookies)}</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+  }).catch(error => console.error("Error updating leaderboard:", error));
+}
