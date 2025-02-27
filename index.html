@@ -637,40 +637,29 @@
         let isPointerAnimating = false;
 
         // Updated updatePointerPosition function remains unchanged:
+        // ui.js - Updated updatePointerPosition function
         function updatePointerPosition() {
           const pointer = document.getElementById('autoClickerCursor');
           const pastry = document.querySelector('.pastry');
-          
-          // Get the cookie's width (assuming it's a square)
-          const pastryWidth = pastry.offsetWidth;
-          
-          // Calculate the cookie's center in local coordinates
-          const centerX = pastryWidth / 2;
-          const centerY = pastryWidth / 2;  
-          
-          // Base radius: half the cookie's width plus some padding (20px)
-          const baseRadius = pastryWidth / 2 + 20;
-          
-          // Effective radius adjusted by the current poke offset
+          if (!pointer || !pastry) {
+            isPointerAnimating = false;
+            return;
+          }
+          const pastryRect = pastry.getBoundingClientRect();
+          const centerX = pastryRect.width / 2;
+          const centerY = pastryRect.height / 2;
+          const baseRadius = pastryRect.width / 2 + 20;
           const effectiveRadius = baseRadius - currentPokeOffset;
-          
-          // Calculate pointer's orbit coordinates
           const pointerX = centerX + effectiveRadius * Math.cos(pointerAngle);
           const pointerY = centerY + effectiveRadius * Math.sin(pointerAngle);
-          
-          // Position pointer so its center is at (pointerX, pointerY)
           pointer.style.left = (pointerX - pointer.offsetWidth / 2) + 'px';
           pointer.style.top = (pointerY - pointer.offsetHeight / 2) + 'px';
-          
-          // Rotate pointer so its top always faces the cookie center
           const angleDeg = (pointerAngle * 180) / Math.PI + 270;
           pointer.style.transform = `rotate(${angleDeg}deg)`;
-          
-          // Increment angle for continuous rotation
           pointerAngle += rotationSpeed;
-          
           requestAnimationFrame(updatePointerPosition);
         }
+
 
         // Poke animation: temporarily move the pointer inward so it "touches" the cookie
         function pokeCookie() {
