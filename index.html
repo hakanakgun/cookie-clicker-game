@@ -15,6 +15,26 @@
             text-align: center;
         }
         
+        .auto-clicker-cursor {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: url('pointer_finger.png') no-repeat center center; /* Update with your image path */
+            background-size: contain;
+            pointer-events: none;
+            animation: pokeCookie 2s infinite;
+            /* start hidden, we'll unhide it when the upgrade is purchased */
+            display: none;
+        }
+
+        @keyframes pokeCookie {
+            0%   { transform: translate(-50%, -50%) rotate(0deg); }
+            25%  { transform: translate(-50%, -40%) rotate(0deg); }
+            50%  { transform: translate(-50%, -50%) rotate(0deg); }
+            75%  { transform: translate(-50%, -40%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(0deg); }
+        }
+
         .game-container {
             display: flex;
             flex-direction: column;
@@ -330,6 +350,7 @@
                         <div class="chip"></div>
                         <div class="chip"></div>
                         <div class="chip"></div>
+                        <div class="auto-clicker-cursor" id="autoClickerCursor"></div>
                     </div>
                 </div>
                 <div class="pastry-counter" id="pastry-counter">0 cookies</div>
