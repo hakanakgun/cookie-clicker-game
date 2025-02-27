@@ -307,4 +307,4 @@ function triggerRandomEvent() {
   }
 }
 
-export { saveGame, loadGame };
+export { saveGame };
